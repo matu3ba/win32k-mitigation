@@ -13,6 +13,17 @@ static BOOL TestLoadLib(PCTSTR swzName)
     return TRUE;
 }
 
+static BOOL TestNotLoadLib(PCTSTR swzName)
+{
+    if (LoadLibrary(swzName) != NULL)
+    {
+        _tprintf(TEXT(" [!] Was able to load %s\n"), swzName);
+        return FALSE;
+    }
+    return TRUE;
+}
+
+
 int _tmain(int argc, PCTSTR argv[])
 {
     int res = 0;
@@ -43,10 +54,14 @@ int _tmain(int argc, PCTSTR argv[])
             _tprintf(TEXT(" [+] Child running with filtered Win32k syscalls\n"));
         }
 
+        TestNotLoadLib(TEXT("USER32.dll"));
+        TestNotLoadLib(TEXT("gdi32full.dll"));
+        TestNotLoadLib(TEXT("GDI32.dll"));
+        TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"));
+
         if (LoadLibrary(TEXT("gdi32full.dll")) == NULL)
         {
-            _tprintf(TEXT("\n"));
-            _tprintf(TEXT(" [.] Trying all gdi32full dependencies:\n"));
+            _tprintf(TEXT(" [.] Checking all gdi32full dependencies:\n"));
             TestLoadLib(TEXT("msvcp_win.dll"));
             TestLoadLib(TEXT("api-ms-win-crt-string-l1-1-0.dll"));
             TestLoadLib(TEXT("api-ms-win-crt-runtime-l1-1-0.dll"));
@@ -86,14 +101,13 @@ int _tmain(int argc, PCTSTR argv[])
             TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll"));
             TestLoadLib(TEXT("api-ms-win-core-privateprofile-l1-1-0.dll"));
             TestLoadLib(TEXT("api-ms-win-core-localization-private-l1-1-0.dll"));
-            TestLoadLib(TEXT("GDI32.dll"));
-            TestLoadLib(TEXT("USER32.dll"));
-            _tprintf(TEXT("\n"));
+            TestNotLoadLib(TEXT("GDI32.dll"));
+            TestNotLoadLib(TEXT("USER32.dll"));
+            _tprintf(TEXT(" --- done\n"));
 
             if (LoadLibrary(TEXT("USER32.dll")) == NULL)
             {
-                _tprintf(TEXT("\n"));
-                _tprintf(TEXT(" [.] Trying all user32 dependencies:\n"));
+                _tprintf(TEXT(" [.] Checking all user32 dependencies:\n"));
                 TestLoadLib(TEXT("win32u.dll"));
                 TestLoadLib(TEXT("ntdll.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-localization-l1-2-0.dll"));
@@ -128,17 +142,16 @@ int _tmain(int argc, PCTSTR argv[])
                 TestLoadLib(TEXT("KERNELBASE.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-kernel32-legacy-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-appinit-l1-1-0.dll"));
-                TestLoadLib(TEXT("GDI32.dll"));
+                TestNotLoadLib(TEXT("GDI32.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-1.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-apiquery-l1-1-0.dll"));
-                _tprintf(TEXT("\n"));
+                _tprintf(TEXT(" --- done\n"));
             }
 
             if (LoadLibrary(TEXT("GDI32.dll")) == NULL)
             {
-                _tprintf(TEXT("\n"));
-                _tprintf(TEXT(" [.] Trying all gdi32 dependencies:\n"));
+                _tprintf(TEXT(" [.] Checking all gdi32 dependencies:\n"));
                 TestLoadLib(TEXT("ntdll.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-heap-l2-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-libraryloader-l1-2-0.dll"));
@@ -147,11 +160,11 @@ int _tmain(int argc, PCTSTR argv[])
                 TestLoadLib(TEXT("api-ms-win-core-profile-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-sysinfo-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-errorhandling-l1-1-0.dll"));
-                TestLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"));
+                TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-1.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll"));
                 TestLoadLib(TEXT("api-ms-win-core-apiquery-l1-1-0.dll"));
-                _tprintf(TEXT("\n"));
+                _tprintf(TEXT(" --- done\n"));
             }
         }
 
