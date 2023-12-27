@@ -1,5 +1,5 @@
 const std = @import("std");
-// const ChildProcess = @import("std1"); // @import("std");
+const mystd = @import("mystd");
 
 pub fn main() !void {
     // make sure safety checks are enabled even in release modes
@@ -14,7 +14,7 @@ pub fn main() !void {
     _ = it.next() orelse unreachable; // skip binary name
     const child_path = it.next() orelse unreachable;
 
-    var child = std.ChildProcess.init(&.{ child_path, "hello arg" }, gpa);
+    var child = mystd.ChildProcess.init(&.{ child_path, "hello arg" }, gpa);
     child.stdin_behavior = .Pipe;
     child.stdout_behavior = .Pipe;
     child.stderr_behavior = .Inherit;
