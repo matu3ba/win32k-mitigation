@@ -23,7 +23,6 @@ static BOOL TestNotLoadLib(PCTSTR swzName)
     return TRUE;
 }
 
-
 int _tmain(int argc, PCTSTR argv[])
 {
     int res = 0;
