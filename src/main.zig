@@ -3,13 +3,8 @@ const win = std.os.windows;
 const mem = std.mem;
 
 pub fn main() !void {
-    // TODO
-    // var selfpath_buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    // * PPROC_THREAD_ATTRIBUTE_LIST pAttr = NULL;
-    // * DWORD dwMitigationPolicy = PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
-    // * STARTUPINFOEX startInfo = { 0 };
-    // * PROCESS_INFORMATION procInfo = { 0 };
-    // * PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY effectivePolicy = { 0 };
+    var selfpath_buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    selfpath_buf[0] = 0;
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);

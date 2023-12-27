@@ -1,4 +1,6 @@
 const std = @import("std");
+const winextra = @import("win.zig");
+
 const builtin = @import("builtin");
 const unicode = std.unicode;
 const io = std.io;
@@ -67,6 +69,9 @@ pub const ChildProcess = struct {
 
     /// Darwin-only. Start child process in suspended state as if SIGSTOP was sent.
     start_suspended: bool = false,
+
+    /// Windows-only: process thread attribute list for declarative spawn properties
+    proc_thread_attr_list: ?winextra.LPPROC_THREAD_ATTRIBUTE_LIST = null,
 
     /// Set to true to obtain rusage information for the child process.
     /// Depending on the target platform and implementation status, the
@@ -744,26 +749,29 @@ pub const ChildProcess = struct {
             windowsDestroyPipe(g_hChildStd_ERR_Rd, g_hChildStd_ERR_Wr);
         };
 
-        var siStartInfo = windows.STARTUPINFOW{
-            .cb = @sizeOf(windows.STARTUPINFOW),
-            .hStdError = g_hChildStd_ERR_Wr,
-            .hStdOutput = g_hChildStd_OUT_Wr,
-            .hStdInput = g_hChildStd_IN_Rd,
-            .dwFlags = windows.STARTF_USESTDHANDLES,
+        var siexStartInfoEx = winextra.STARTUPINFOEXW{
+            .lpStartupInfo = windows.STARTUPINFOW{
+                .cb = @sizeOf(winextra.STARTUPINFOEXW),
+                .hStdError = g_hChildStd_ERR_Wr,
+                .hStdOutput = g_hChildStd_OUT_Wr,
+                .hStdInput = g_hChildStd_IN_Rd,
+                .dwFlags = windows.STARTF_USESTDHANDLES,
 
-            .lpReserved = null,
-            .lpDesktop = null,
-            .lpTitle = null,
-            .dwX = 0,
-            .dwY = 0,
-            .dwXSize = 0,
-            .dwYSize = 0,
-            .dwXCountChars = 0,
-            .dwYCountChars = 0,
-            .dwFillAttribute = 0,
-            .wShowWindow = 0,
-            .cbReserved2 = 0,
-            .lpReserved2 = null,
+                .lpReserved = null,
+                .lpDesktop = null,
+                .lpTitle = null,
+                .dwX = 0,
+                .dwY = 0,
+                .dwXSize = 0,
+                .dwYSize = 0,
+                .dwXCountChars = 0,
+                .dwYCountChars = 0,
+                .dwFillAttribute = 0,
+                .wShowWindow = 0,
+                .cbReserved2 = 0,
+                .lpReserved2 = null,
+            },
+            .lpAttributeList = self.proc_thread_attr_list,
         };
         var piProcInfo: windows.PROCESS_INFORMATION = undefined;
 
@@ -847,7 +855,7 @@ pub const ChildProcess = struct {
                 dir_buf.shrinkRetainingCapacity(normalized_len);
             }
 
-            windowsCreateProcessPathExt(self.allocator, &dir_buf, &app_buf, PATHEXT, cmd_line_w.ptr, envp_ptr, cwd_w_ptr, &siStartInfo, &piProcInfo) catch |no_path_err| {
+            windowsCreateProcessPathExt(self.allocator, &dir_buf, &app_buf, PATHEXT, cmd_line_w.ptr, envp_ptr, cwd_w_ptr, &siexStartInfoEx, &piProcInfo) catch |no_path_err| {
                 const original_err = switch (no_path_err) {
                     error.FileNotFound, error.InvalidExe, error.AccessDenied => |e| e,
                     error.UnrecoverableInvalidExe => return error.InvalidExe,
@@ -873,7 +881,7 @@ pub const ChildProcess = struct {
                     const normalized_len = windows.normalizePath(u16, dir_buf.items) catch continue;
                     dir_buf.shrinkRetainingCapacity(normalized_len);
 
-                    if (windowsCreateProcessPathExt(self.allocator, &dir_buf, &app_buf, PATHEXT, cmd_line_w.ptr, envp_ptr, cwd_w_ptr, &siStartInfo, &piProcInfo)) {
+                    if (windowsCreateProcessPathExt(self.allocator, &dir_buf, &app_buf, PATHEXT, cmd_line_w.ptr, envp_ptr, cwd_w_ptr, &siexStartInfoEx, &piProcInfo)) {
                         break :run;
                     } else |err| switch (err) {
                         error.FileNotFound, error.AccessDenied, error.InvalidExe => continue,
@@ -939,7 +947,7 @@ fn windowsCreateProcessPathExt(
     cmd_line: [*:0]u16,
     envp_ptr: ?[*]u16,
     cwd_ptr: ?[*:0]u16,
-    lpStartupInfo: *windows.STARTUPINFOW,
+    siexStartInfoEx: *winextra.STARTUPINFOEXW,
     lpProcessInformation: *windows.PROCESS_INFORMATION,
 ) !void {
     const app_name_len = app_buf.items.len;
@@ -1070,7 +1078,7 @@ fn windowsCreateProcessPathExt(
             try dir_buf.append(allocator, 0);
             const full_app_name = dir_buf.items[0 .. dir_buf.items.len - 1 :0];
 
-            if (windowsCreateProcess(full_app_name.ptr, cmd_line, envp_ptr, cwd_ptr, lpStartupInfo, lpProcessInformation)) |_| {
+            if (windowsCreateProcess(full_app_name.ptr, cmd_line, envp_ptr, cwd_ptr, siexStartInfoEx, lpProcessInformation)) |_| {
                 return;
             } else |err| switch (err) {
                 error.FileNotFound,
@@ -1112,7 +1120,7 @@ fn windowsCreateProcessPathExt(
         try dir_buf.append(allocator, 0);
         const full_app_name = dir_buf.items[0 .. dir_buf.items.len - 1 :0];
 
-        if (windowsCreateProcess(full_app_name.ptr, cmd_line, envp_ptr, cwd_ptr, lpStartupInfo, lpProcessInformation)) |_| {
+        if (windowsCreateProcess(full_app_name.ptr, cmd_line, envp_ptr, cwd_ptr, siexStartInfoEx, lpProcessInformation)) |_| {
             return;
         } else |err| switch (err) {
             error.FileNotFound => continue,
@@ -1133,7 +1141,7 @@ fn windowsCreateProcessPathExt(
     return unappended_err;
 }
 
-fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u16, cwd_ptr: ?[*:0]u16, lpStartupInfo: *windows.STARTUPINFOW, lpProcessInformation: *windows.PROCESS_INFORMATION) !void {
+fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u16, cwd_ptr: ?[*:0]u16, siexStartInfoEx: *winextra.STARTUPINFOEXW, lpProcessInformation: *windows.PROCESS_INFORMATION) !void {
     // TODO the docs for environment pointer say:
     // > A pointer to the environment block for the new process. If this parameter
     // > is NULL, the new process uses the environment of the calling process.
@@ -1151,16 +1159,18 @@ fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u1
     // However this would imply that programs compiled with -DUNICODE could not pass
     // environment variables to programs that were not, which seems unlikely.
     // More investigation is needed.
+    const flags = winextra.PROCESS_CREATION_FLAGS;
+    const used_flags = @intFromEnum(flags.EXTENDED_STARTUPINFO_PRESENT) | @intFromEnum(flags.CREATE_UNICODE_ENVIRONMENT);
     return windows.CreateProcessW(
         app_name,
         cmd_line,
         null,
         null,
         windows.TRUE,
-        windows.CREATE_UNICODE_ENVIRONMENT,
+        used_flags,
         @as(?*anyopaque, @ptrCast(envp_ptr)),
         cwd_ptr,
-        lpStartupInfo,
+        &siexStartInfoEx.lpStartupInfo,
         lpProcessInformation,
     );
 }
