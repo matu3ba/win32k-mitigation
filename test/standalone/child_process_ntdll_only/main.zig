@@ -16,7 +16,7 @@ pub fn main() !void {
 
     var child = mystd.ChildProcess.init(&.{ child_path, "hello arg" }, gpa);
     child.stdin_behavior = .Close;
-    child.stdout_behavior = .Pipe;
+    child.stdout_behavior = .Close;
     child.stderr_behavior = .Inherit;
     try child.spawn();
 

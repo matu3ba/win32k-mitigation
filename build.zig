@@ -60,6 +60,7 @@ pub fn build(b: *std.Build) void {
     const run_childproc_unit_tests = b.addRunArtifact(childproc_unit_tests);
 
     const test_step = b.step("test", "Run unit tests");
+    const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
 
     // moved out build.zig from child_process
     if (builtin.os.tag != .wasi) {
@@ -76,7 +77,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
         main.addModule("mystd", mystd);
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);
@@ -93,6 +94,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
+        child.addModule("mystd", mystd);
 
         const main = b.addExecutable(.{
             .name = "main_ntdll_only",
@@ -100,7 +102,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
         main.addModule("mystd", mystd);
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);

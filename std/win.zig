@@ -11,6 +11,9 @@ pub const BOOL = i32;
 pub const PWSTR = [*:0]u16;
 pub const PSTR = [*:0]u8;
 pub const HANDLE = *anyopaque;
+pub const PVOID = *anyopaque;
+pub const SIZE_T = usize;
+pub const DWORD = u32;
 
 pub const LPPROC_THREAD_ATTRIBUTE_LIST = *anyopaque;
 
@@ -78,3 +81,42 @@ pub extern "kernel32" fn UpdateProcThreadAttribute(
     lpPreviousValue: ?*anyopaque,
     lpReturnSize: ?*usize,
 ) callconv(WINAPI) BOOL;
+
+pub const PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY = extern struct {
+    DUMMYUNIONNAME : extern union {
+        Flags : DWORD,
+        DUMMYSTRUCTNAME : packed struct {
+            DisallowWin32kSystemCalls : u1,
+            AuditDisallowWin32kSystemCalls : u1,
+            ReservedFlags : u30,
+        },
+    },
+};
+
+pub const PROCESS_MITIGATION_POLICY = enum(c_int) {
+    ProcessDEPPolicy,
+    ProcessASLRPolicy,
+    ProcessDynamicCodePolicy,
+    ProcessStrictHandleCheckPolicy,
+    ProcessSystemCallDisablePolicy,
+    ProcessMitigationOptionsMask,
+    ProcessExtensionPointDisablePolicy,
+    ProcessControlFlowGuardPolicy,
+    ProcessSignaturePolicy,
+    ProcessFontDisablePolicy,
+    ProcessImageLoadPolicy,
+    ProcessSystemCallFilterPolicy,
+    ProcessPayloadRestrictionPolicy,
+    ProcessChildProcessPolicy,
+    ProcessSideChannelIsolationPolicy,
+    ProcessUserShadowStackPolicy,
+    MaxProcessMitigationPolicy
+};
+
+pub extern "kernel32" fn GetProcessMitigationPolicy(
+    hProcess: HANDLE,
+    MitigationPolicy: PROCESS_MITIGATION_POLICY,
+    lpBuffer: PVOID,
+    dwLength: SIZE_T,
+) callconv(WINAPI) BOOL;
+
