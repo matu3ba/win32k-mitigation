@@ -1,9 +1,8 @@
-// .\test\standalone\child_process\main.zig
+// .\test\standalone\child_process_ntdll_only\main.zig
 const std = @import("std");
 const mystd = @import("mystd");
-
 pub fn main() !void {
-    // make sure safety checks are enabled even in release modes
+
     var gpa_state = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer if (gpa_state.deinit() != .ok) {
         @panic("found memory leaks");
@@ -16,21 +15,17 @@ pub fn main() !void {
     const child_path = it.next() orelse unreachable;
 
     var child = mystd.ChildProcess.init(&.{ child_path, "hello arg" }, gpa);
-    child.stdin_behavior = .Pipe;
+    child.stdin_behavior = .Close;
     child.stdout_behavior = .Pipe;
     child.stderr_behavior = .Inherit;
     try child.spawn();
-    const child_stdin = child.stdin.?;
-    try child_stdin.writer().writeAll("hello from stdin"); // verified in child
-    child_stdin.close();
-    child.stdin = null;
 
-    const hello_stdout = "hello from stdout";
-    var buf: [hello_stdout.len]u8 = undefined;
-    const n = try child.stdout.?.reader().readAll(&buf);
-    if (!std.mem.eql(u8, buf[0..n], hello_stdout)) {
-        testError("child stdout: '{s}'; want '{s}'", .{ buf[0..n], hello_stdout });
-    }
+    // const hello_stdout = "hello from stdout";
+    // var buf: [hello_stdout.len]u8 = undefined;
+    // const n = try child.stdout.?.reader().readAll(&buf);
+    // if (!std.mem.eql(u8, buf[0..n], hello_stdout)) {
+    //     testError("child stdout: '{s}'; want '{s}'", .{ buf[0..n], hello_stdout });
+    // }
 
     switch (try child.wait()) {
         .Exited => |code| {

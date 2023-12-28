@@ -19,27 +19,6 @@ pub const STARTUPINFOEXW = extern struct {
     lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
 };
 
-pub extern "kernel32" fn InitializeProcThreadAttributeList(
-    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
-    dwAttributeCount: u32,
-    dwFlags: u32,
-    lpSize: ?*usize,
-) callconv(WINAPI) BOOL;
-
-pub extern "kernel32" fn DeleteProcThreadAttributeList(
-    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
-) callconv(WINAPI) void;
-
-pub extern "kernel32" fn UpdateProcThreadAttribute(
-    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
-    dwFlags: u32,
-    Attribute: usize,
-    lpValue: ?*anyopaque,
-    cbSize: usize,
-    lpPreviousValue: ?*anyopaque,
-    lpReturnSize: ?*usize,
-) callconv(WINAPI) BOOL;
-
 // zig fmt: off
 pub const PROCESS_CREATION_FLAGS = enum(u32) {
     // <- gap here ->
@@ -78,3 +57,24 @@ pub const PROCESS_CREATION_FLAGS = enum(u32) {
     _,
 };
 // zig fmt: on
+
+pub extern "kernel32" fn InitializeProcThreadAttributeList(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+    dwAttributeCount: u32,
+    dwFlags: u32,
+    lpSize: ?*usize,
+) callconv(WINAPI) BOOL;
+
+pub extern "kernel32" fn DeleteProcThreadAttributeList(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+) callconv(WINAPI) void;
+
+pub extern "kernel32" fn UpdateProcThreadAttribute(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+    dwFlags: u32,
+    Attribute: usize,
+    lpValue: ?*anyopaque,
+    cbSize: usize,
+    lpPreviousValue: ?*anyopaque,
+    lpReturnSize: ?*usize,
+) callconv(WINAPI) BOOL;

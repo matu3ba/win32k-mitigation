@@ -85,5 +85,29 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&run_childproc_module_test.step);
     }
 
+    // moved out build.zig from child_process_ntdll_only
+    if (builtin.os.tag != .wasi) {
+        const child = b.addExecutable(.{
+            .name = "child_ntdll_only",
+            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/child.zig" },
+            .optimize = optimize,
+            .target = target,
+        });
+
+        const main = b.addExecutable(.{
+            .name = "main_ntdll_only",
+            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/main.zig" },
+            .optimize = optimize,
+            .target = target,
+        });
+        const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+        main.addModule("mystd", mystd);
+        const run_childproc_module_test = b.addRunArtifact(main);
+        run_childproc_module_test.addArtifactArg(child);
+        run_childproc_module_test.expectExitCode(0);
+
+        test_step.dependOn(&run_childproc_module_test.step);
+    }
+
     test_step.dependOn(&run_childproc_unit_tests.step);
 }
