@@ -28,18 +28,10 @@ fn run(allocator: std.mem.Allocator) !void {
             @sizeOf(win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY),
             ) == 0) {
         testError("[!] Could not query system call filter policy in child: code '{d}'\n", .{ GetLastError() });
+    } else {
+        if (effectice_policy.DUMMYUNIONNAME.DUMMYSTRUCTNAME.DisallowWin32kSystemCalls != 1)
+            testError(" [!] Child running with no filtering on Win32k syscalls\n", .{});
     }
-    // else if (effectice_policy.DisallowWin32kSystemCalls.DUMMYUNIONNAME.DUMMYSTRUCTNAME) {
-    // }
-    // else if (!effectivePolicy.DisallowWin32kSystemCalls)
-    // {
-    //     _tprintf(TEXT(" [!] Child running with no filtering on Win32k syscalls\n"));
-    // }
-    // else
-    // {
-    //     _tprintf(TEXT(" [+] Child running with filtered Win32k syscalls\n"));
-    // }
-    //
     // TestNotLoadLib(TEXT("USER32.dll"));
     // TestNotLoadLib(TEXT("gdi32full.dll"));
     // TestNotLoadLib(TEXT("GDI32.dll"));
