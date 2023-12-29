@@ -116,6 +116,57 @@ pub fn GetProcessMitigationPolicy(
     }
 }
 
+pub const InitializeProcThreadAttributeListError = error{Unexpected, InsufficientBuffer};
+pub fn InitializeProcThreadAttributeList(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+    dwAttributeCount: u32,
+    dwFlags: u32,
+    lpSize: ?*usize,
+) InitializeProcThreadAttributeListError!void {
+    if (kernel32.InitializeProcThreadAttributeList(lpAttributeList, dwAttributeCount, dwFlags, lpSize) == 0) {
+        switch (kernel32.GetLastError()) {
+            .INSUFFICIENT_BUFFER => return error.InsufficientBuffer,
+            else => |err| return unexpectedError(err),
+        }
+    }
+}
+
+pub const DeleteProcThreadAttributeListError = error{Unexpected};
+pub fn DeleteProcThreadAttributeList(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+) DeleteProcThreadAttributeListError!void {
+    if (kernel32.DeleteProcThreadAttributeList(lpAttributeList) == 0) {
+        switch (kernel32.GetLastError()) {
+            else => |err| return unexpectedError(err),
+        }
+    }
+}
+
+pub const UpdateProcThreadAttributeError = error{Unexpected};
+pub fn UpdateProcThreadAttribute(
+    lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
+    dwFlags: u32,
+    Attribute: usize,
+    lpValue: ?*anyopaque,
+    cbSize: usize,
+    lpPreviousValue: ?*anyopaque,
+    lpReturnSize: ?*usize,
+) UpdateProcThreadAttributeError!void {
+    if (kernel32.UpdateProcThreadAttribute(
+        lpAttributeList,
+        dwFlags,
+        Attribute,
+        lpValue,
+        cbSize,
+        lpPreviousValue,
+        lpReturnSize,
+    ) == 0) {
+        switch (kernel32.GetLastError()) {
+            else => |err| return unexpectedError(err),
+        }
+    }
+}
+
 // for unexpectedError
 pub const FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
 pub const FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
@@ -147,3 +198,112 @@ pub fn unexpectedError(err: Win32Error) std.os.UnexpectedError {
     }
     return error.Unexpected;
 }
+
+const PROC_THREAD_ATTRIBUTE_NUMBER   = 0x0000FFFF;
+const PROC_THREAD_ATTRIBUTE_THREAD   = 0x00010000; // Attribute may be used with thread creation
+const PROC_THREAD_ATTRIBUTE_INPUT    = 0x00020000; // Attribute is input only
+const PROC_THREAD_ATTRIBUTE_ADDITIVE = 0x00040000; // Attribute may be "accumulated," e.g. bitmasks, counters, etc.
+
+pub fn ProcThreadAttributeValue(
+    comptime number: u32,
+    comptime thread: bool,
+    comptime input: bool,
+    comptime additive: bool,
+) u32 {
+    const s1 = number & PROC_THREAD_ATTRIBUTE_NUMBER;
+    const s2 = if (thread != false) PROC_THREAD_ATTRIBUTE_THREAD else 0;
+    const s3 = if (input != false) PROC_THREAD_ATTRIBUTE_INPUT else 0;
+    const s4 = if (additive != false) PROC_THREAD_ATTRIBUTE_ADDITIVE else 0;
+    return s1 | s2 | s3 | s4;
+}
+
+// zig fmt: off
+pub const PROC_THREAD_ATTRIBUTE_NUM = enum(u32) {
+    ProcThreadAttributeParentProcess                = 0,
+    // < gap >
+    ProcThreadAttributeHandleList                   = 2,
+    // start >= _WIN32_WINNT_WIN7
+    ProcThreadAttributeGroupAffinity                = 3,
+    ProcThreadAttributePreferredNode                = 4,
+    ProcThreadAttributeIdealProcessor               = 5,
+    ProcThreadAttributeUmsThread                    = 6,
+    ProcThreadAttributeMitigationPolicy             = 7,
+    // < gap >
+    // endof >= _WIN32_WINNT_WIN7
+    ProcThreadAttributeSecurityCapabilities         = 9,  // >= _WIN32_WINNT_WIN8
+    // < gap >
+    ProcThreadAttributeProtectionLevel              = 11,
+    // < gap >
+    // start >= _WIN32_WINNT_WINTHRESHOLD
+    ProcThreadAttributeJobList                      = 13,
+    ProcThreadAttributeChildProcessPolicy           = 14,
+    ProcThreadAttributeAllApplicationPackagesPolicy = 15,
+    ProcThreadAttributeWin32kFilter                 = 16,
+    // endof >= _WIN32_WINNT_WINTHRESHOLD
+    ProcThreadAttributeSafeOpenPromptOriginClaim    = 17, // >= NTDDI_WIN10_RS1
+    ProcThreadAttributeDesktopAppPolicy             = 18, // >= NTDDI_WIN10_RS2
+    // < gap >
+    ProcThreadAttributePseudoConsole                = 22, // >= NTDDI_WIN10_RS5
+    // < gap >
+    ProcThreadAttributeMitigationAuditPolicy        = 24, // >= NTDDI_WIN10_MN
+};
+pub const PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeParentProcess), false, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_HANDLE_LIST = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeHandleList), false, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeGroupAffinity), true, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_PREFERRED_NODE = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributePreferredNode), false, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeIdealProcessor), true, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_UMS_THREAD = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeUmsThread), true, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeMitigationPolicy), false, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeSecurityCapabilities), false, true, false
+);
+pub const PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL = ProcThreadAttributeValue(
+    @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeProtectionLevel), false, true, false
+);
+
+pub const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = val: {
+    if (!builtin.target.os.version_range.windows.min.isAtLeast(.win10_rs5))
+        @compileError("Mitigation not available for target");
+    break :val ProcThreadAttributeValue(
+        @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributePseudoConsole), false, true, false
+    );
+};
+
+pub const PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY = val: {
+    if (!builtin.target.os.version_range.windows.min.isAtLeast(.win10_rs2))
+        @compileError("Mitigation not available for target");
+    break :val ProcThreadAttributeValue(
+        @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeDesktopAppPolicy), false, true, false
+    );
+};
+
+const PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = val: {
+    if (!builtin.target.os.version_range.windows.min.isAtLeast(.win10_mn))
+        @compileError("Mitigation not available for target");
+    break :val ProcThreadAttributeValue(
+        @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeMitigationAuditPolicy), false, true, false
+    );
+};
+// zig fmt: on
+
+pub const PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE = struct {
+    pub const MASK       =        (0x00000003 << 28);
+    pub const DEFER      =        (0x00000000 << 28);
+    pub const ALWAYS_ON  =        (0x00000001 << 28);
+    pub const ALWAYS_OFF =        (0x00000002 << 28);
+    pub const RESERVED   =        (0x00000003 << 28);
+};

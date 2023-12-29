@@ -3,23 +3,59 @@ const std = @import("std");
 const mystd = @import("mystd");
 const winextra = mystd.win_extra;
 pub fn main() !void {
-
     var gpa_state = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer if (gpa_state.deinit() != .ok) {
         @panic("found memory leaks");
     };
     const gpa = gpa_state.allocator();
+    behavior(gpa) catch {
+        parent_test_error = true;
+    };
+    return if (parent_test_error) error.ParentTestError else {};
+}
 
-    // var attrs: winextra.LPPROC_THREAD_ATTRIBUTE_LIST = undefined;
-    // _ = attrs;
-    // var attrs_len: winextra.DWORD = undefined;
-    // _ = attrs_len;
-    // std.testing.expectError(error. ,InitializeProcThreadAttributeList(NULL, 1, 0, &attrs_len) ||
-    // windows.kernel32.GetLastError()) {
-    // windows.kernel32.GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+const BehaviorError = error { Incorrect };
 
+fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
 
-    var it = try std.process.argsWithAllocator(gpa);
+    var mitigation_policy: winextra.DWORD = winextra.PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE.ALWAYS_ON;
+    var attrs: winextra.LPPROC_THREAD_ATTRIBUTE_LIST = undefined;
+    var attrs_len: winextra.SIZE_T = undefined;
+    std.testing.expectError(error.InsufficientBuffer, winextra.InitializeProcThreadAttributeList(null, 1, 0, &attrs_len)) catch {
+        testError("could not get list size for proc thread attribute list\n", .{});
+        return error.Incorrect;
+    };
+    var attrs_buf: []u8 = undefined;
+    // *anyopaque
+    attrs_buf = gpa.alloc(u8, attrs_len) catch {
+        testError("could not alloc\n", .{});
+        return error.Incorrect;
+    };
+    defer gpa.free(attrs_buf);
+    @memset(attrs_buf, 0);
+    // attrs = @as(winextra.LPPROC_THREAD_ATTRIBUTE_LIST, attrs_buf);
+    attrs = @alignCast(@ptrCast(attrs_buf));
+    winextra.InitializeProcThreadAttributeList(attrs, 1, 0, &attrs_len) catch {
+        testError("could not initialize proc thread attribute list\n", .{});
+        return error.Incorrect;
+    };
+    winextra.UpdateProcThreadAttribute(
+        attrs,
+        0,
+        winextra.PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+        @ptrCast(&mitigation_policy),
+        @sizeOf(@TypeOf(mitigation_policy)),
+        null,
+        null,
+    ) catch {
+        testError("could not update proc thread attribute list\n", .{});
+        return error.Incorrect;
+    };
+
+    var it = std.process.argsWithAllocator(gpa) catch {
+        testError("could collect args\n", .{});
+        return error.Incorrect;
+    };
     defer it.deinit();
     _ = it.next() orelse unreachable; // skip binary name
     const child_path = it.next() orelse unreachable;
@@ -28,25 +64,31 @@ pub fn main() !void {
     child.stdin_behavior = .Close;
     child.stdout_behavior = .Close;
     child.stderr_behavior = .Inherit;
-    try child.spawn();
+    child.proc_thread_attr_list = attrs;
 
-    // const hello_stdout = "hello from stdout";
-    // var buf: [hello_stdout.len]u8 = undefined;
-    // const n = try child.stdout.?.reader().readAll(&buf);
-    // if (!std.mem.eql(u8, buf[0..n], hello_stdout)) {
-    //     testError("child stdout: '{s}'; want '{s}'", .{ buf[0..n], hello_stdout });
-    // }
+    child.spawn() catch {
+        testError("could not spawn child\n", .{ });
+        return error.Incorrect;
+    };
 
-    switch (try child.wait()) {
+    const wait_res = child.wait() catch {
+        testError("could not wait for child\n", .{ });
+        return error.Incorrect;
+    };
+
+    switch (wait_res) {
         .Exited => |code| {
             const child_ok_code = 42; // set by child if no test errors
             if (code != child_ok_code) {
                 testError("child exit code: {d}; want {d}", .{ code, child_ok_code });
+                return error.Incorrect;
             }
         },
-        else => |term| testError("abnormal child exit: {}", .{term}),
+        else => |term| {
+            testError("abnormal child exit: {}", .{term});
+            return error.Incorrect;
+        }
     }
-    return if (parent_test_error) error.ParentTestError else {};
 }
 
 var parent_test_error = false;
