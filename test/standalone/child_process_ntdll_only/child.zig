@@ -1,6 +1,6 @@
 const std = @import("std");
 const mystd = @import("mystd");
-const win_extra = mystd.win_extra;
+const winextra = mystd.win_extra;
 const GetLastError = std.os.windows.kernel32.GetLastError;
 
 // 42 is expected by parent; other values result in test failure
@@ -19,28 +19,36 @@ fn run(allocator: std.mem.Allocator) !void {
     defer args.deinit();
     _ = args.next() orelse unreachable; // skip binary name
 
-    const SYSCALL_DISABLE_POLICY = win_extra.PROCESS_MITIGATION_POLICY;
-    var effectice_policy: win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY = undefined;
+    const SYSCALL_DISABLE_POLICY = winextra.PROCESS_MITIGATION_POLICY;
+    var effectice_policy: winextra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY = undefined;
     const process_handle = std.os.windows.kernel32.GetCurrentProcess();
-    win_extra.GetProcessMitigationPolicy(
+    winextra.GetProcessMitigationPolicy(
         process_handle,
         SYSCALL_DISABLE_POLICY.ProcessSystemCallDisablePolicy,
         &effectice_policy,
-        @sizeOf(win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY),
+        @sizeOf(winextra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY),
     ) catch {
         testError("[!] Could not query system call filter policy in child: code '{d}'\n", .{ GetLastError() });
     };
 
     if (effectice_policy.DUMMYUNIONNAME.DUMMYSTRUCTNAME.DisallowWin32kSystemCalls != 1)
         testError(" [!] Child running with no filtering on Win32k syscalls\n", .{});
-    // const L = std.unicode.utf8ToUtf16LeStringLiteral;
-    // try std.testing.expectError(error.FileNotFound, std.os.windows.LoadLibraryW(L("USER32.dll")));
-    // TestNotLoadLib(TEXT("USER32.dll"));
-    // TestNotLoadLib(TEXT("gdi32full.dll"));
-    // TestNotLoadLib(TEXT("GDI32.dll"));
-    // TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"));
+    const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
-    // if (LoadLibrary(TEXT("gdi32full.dll")) == NULL)
+    const ntdll_mod = try winextra.LoadLibraryW(L("ntdll.dll"));
+    winextra.FreeLibrary(ntdll_mod);
+    try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+    try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+    try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+    try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+    try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+
+    // try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("gdi32full.dll")));
+    // try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("GDI32.dll")));
+    // try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("api-ms-win-gdi-internal-uap-l1-1-0.dll")));
+    // try std.testing.expectError(error.InitFailed, winextra.LoadLibraryW(L("USER32.dll")));
+
+    // gdi32full.dll
     // {
     //     _tprintf(TEXT(" [.] Checking all gdi32full dependencies:\n"));
     //     TestLoadLib(TEXT("msvcp_win.dll"));

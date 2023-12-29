@@ -20,6 +20,7 @@ pub const SIZE_T = usize;
 pub const DWORD = u32;
 pub const WCHAR = u16;
 
+pub const HMODULE = *opaque {};
 pub const LPPROC_THREAD_ATTRIBUTE_LIST = *anyopaque;
 pub const va_list = *opaque {};
 pub const LPVOID = *anyopaque;
@@ -298,7 +299,6 @@ const PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = val: {
         @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeMitigationAuditPolicy), false, true, false
     );
 };
-// zig fmt: on
 
 pub const PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE = struct {
     pub const MASK       =        (0x00000003 << 28);
@@ -307,3 +307,28 @@ pub const PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE = struct
     pub const ALWAYS_OFF =        (0x00000002 << 28);
     pub const RESERVED   =        (0x00000003 << 28);
 };
+// zig fmt: on
+
+// ====fixups
+pub const LoadLibraryError = error{
+    FileNotFound,
+    Unexpected,
+    InitFailed,
+    OutOfVirtualMemory,
+};
+pub fn LoadLibraryW(lpLibFileName: [*:0]const u16) LoadLibraryError!HMODULE {
+    return kernel32.LoadLibraryW(lpLibFileName) orelse {
+        switch (kernel32.GetLastError()) {
+            .FILE_NOT_FOUND => return error.FileNotFound,
+            .PATH_NOT_FOUND => return error.FileNotFound,
+            .MOD_NOT_FOUND => return error.FileNotFound,
+            .DLL_INIT_FAILED => return error.InitFailed,
+            .NOT_ENOUGH_MEMORY => return error.OutOfVirtualMemory,
+            else => |err| return unexpectedError(err),
+        }
+    };
+}
+
+pub fn FreeLibrary(hModule: HMODULE) void {
+    std.debug.assert(kernel32.FreeLibrary(hModule) != 0);
+}

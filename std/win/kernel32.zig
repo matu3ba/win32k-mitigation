@@ -32,3 +32,7 @@ pub extern "kernel32" fn UpdateProcThreadAttribute(
     lpPreviousValue: ?*anyopaque,
     lpReturnSize: ?*usize,
 ) callconv(win.WINAPI) win.BOOL;
+
+// ====redundant error fix
+pub extern "kernel32" fn LoadLibraryW(lpLibFileName: [*:0]const u16) callconv(win.WINAPI) ?win.HMODULE;
+pub extern "kernel32" fn FreeLibrary(hModule: win.HMODULE) callconv(win.WINAPI) win.BOOL;
