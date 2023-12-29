@@ -1,6 +1,7 @@
 // .\test\standalone\child_process_ntdll_only\main.zig
 const std = @import("std");
 const mystd = @import("mystd");
+const winextra = mystd.win_extra;
 pub fn main() !void {
 
     var gpa_state = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
@@ -8,6 +9,15 @@ pub fn main() !void {
         @panic("found memory leaks");
     };
     const gpa = gpa_state.allocator();
+
+    // var attrs: winextra.LPPROC_THREAD_ATTRIBUTE_LIST = undefined;
+    // _ = attrs;
+    // var attrs_len: winextra.DWORD = undefined;
+    // _ = attrs_len;
+    // std.testing.expectError(error. ,InitializeProcThreadAttributeList(NULL, 1, 0, &attrs_len) ||
+    // windows.kernel32.GetLastError()) {
+    // windows.kernel32.GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+
 
     var it = try std.process.argsWithAllocator(gpa);
     defer it.deinit();

@@ -22,21 +22,24 @@ fn run(allocator: std.mem.Allocator) !void {
     const SYSCALL_DISABLE_POLICY = win_extra.PROCESS_MITIGATION_POLICY;
     var effectice_policy: win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY = undefined;
     const process_handle = std.os.windows.kernel32.GetCurrentProcess();
-    if (win_extra.GetProcessMitigationPolicy(process_handle,
-            SYSCALL_DISABLE_POLICY.ProcessSystemCallDisablePolicy,
-            &effectice_policy,
-            @sizeOf(win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY),
-            ) == 0) {
+    win_extra.GetProcessMitigationPolicy(
+        process_handle,
+        SYSCALL_DISABLE_POLICY.ProcessSystemCallDisablePolicy,
+        &effectice_policy,
+        @sizeOf(win_extra.PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY),
+    ) catch {
         testError("[!] Could not query system call filter policy in child: code '{d}'\n", .{ GetLastError() });
-    } else {
-        if (effectice_policy.DUMMYUNIONNAME.DUMMYSTRUCTNAME.DisallowWin32kSystemCalls != 1)
-            testError(" [!] Child running with no filtering on Win32k syscalls\n", .{});
-    }
+    };
+
+    if (effectice_policy.DUMMYUNIONNAME.DUMMYSTRUCTNAME.DisallowWin32kSystemCalls != 1)
+        testError(" [!] Child running with no filtering on Win32k syscalls\n", .{});
+    // const L = std.unicode.utf8ToUtf16LeStringLiteral;
+    // try std.testing.expectError(error.FileNotFound, std.os.windows.LoadLibraryW(L("USER32.dll")));
     // TestNotLoadLib(TEXT("USER32.dll"));
     // TestNotLoadLib(TEXT("gdi32full.dll"));
     // TestNotLoadLib(TEXT("GDI32.dll"));
     // TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"));
-    //
+
     // if (LoadLibrary(TEXT("gdi32full.dll")) == NULL)
     // {
     //     _tprintf(TEXT(" [.] Checking all gdi32full dependencies:\n"));
