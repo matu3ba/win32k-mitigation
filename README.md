@@ -1,5 +1,11 @@
 # Win32k mitigation
 
+The win32k mitigation policy is a per-thread mitigation which, if enabled,
+denies the thread the right to call most graphics-related system call within
+`wink32.sys`. There are way too many of them (~1000, compared to the kernel's
+400 ones), and most of their implementations is old code, so this mitigation is
+quite important since it blocks a high-value targets for vulnerability exploiters.
+
 ## Usage
 
 Usage:
@@ -119,3 +125,60 @@ so we have to get back to runtime debugging to sort it out. To be continued...
 - [MSDN documentation on the system call disable policy](https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-process_mitigation_system_call_disable_policy)
 - [Win32k System Call Filtering Deep Dive - Morten Schenk](https://improsec.com/tech-blog/win32k-system-call-filtering-deep-dive)
 - [The Windows Sandbox Paradox - James Forshaw Nullcon 2015](https://nullcon.net/website/archives/ppt/goa-15/the-windows-sandbox-paradox.pdf)
+
+### Tracing heap on Windows
+
+https://learn.microsoft.com/en-us/windows-hardware/test/wpt/memory-footprint-optimization-exercise-2
+```
+in cmd with admin capabilities
+REM reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\MemoryTestApp.exe" /v TracingFlags /t REG_DWORD /d 1 /f
+# reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\main_ntdll_only.exe" /v TracingFlags /t REG_DWORD /d 1 /f
+# reg delete "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\main_ntdll_only.exe"
+
+reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\child_ntdll_only.exe" /v TracingFlags /t REG_DWORD /d 1 /f
+reg delete "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\child_ntdll_only.exe"
+
+WPRUI
+> Heap Usage
+> VirtualAlloc Usage
+
+WPA
+> VirtualAlloc Commit Lifetime
+> Lifetime by Process
+```
+
+### Using AppVerifier
+
+> Select binary path
+> Start the program
+> Observe that there are no hints
+
+- https://stackoverflow.com/questions/305203/createprocess-from-memory-buffer
+- https://stackoverflow.com/questions/70217703/process-not-suspending-ntsuspendprocess-what-is-going-on
+- https://stackoverflow.com/questions/66774817/how-does-the-linker-know-where-a-particular-section-of-an-executable-will-be-map
+- https://flylib.com/books/en/4.419.1.114/1/
+- https://j00ru.vexillium.org/2009/08/suspending-processes-in-windows/
+
+### Explicit file descriptor inheritance test
+
+Goal is to prevent leaking handles into subprocesses.
+
+Handles can be attached with a security handle to make them only inheritable in
+certain contexts, but this security handle can not be applied to previously
+created handles. In this case only providing the explicit set of handles
+provides a race-free way to let one process inherit the selected handles
+without leaking them into another parallel spawned process.
+See https://devblogs.microsoft.com/oldnewthing/20111216-00/?p=8873
+
+### Least permissions process techniques
+
+see https://github.com/matu3ba/win32k-mitigation/issues/3
+and https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=87151933.
+
+### SITRE Windows recommendations and rules
+
+https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=87151933
+
+### more sandboxing techniques
+
+Look into chrome code for Windows to understand the techniqes.
