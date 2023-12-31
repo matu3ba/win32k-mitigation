@@ -143,7 +143,7 @@ pub fn DeleteProcThreadAttributeList(
     }
 }
 
-pub const UpdateProcThreadAttributeError = error{Unexpected};
+pub const UpdateProcThreadAttributeError = error{NoSpaceLeft, Unexpected};
 pub fn UpdateProcThreadAttribute(
     lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
     dwFlags: u32,
@@ -163,6 +163,7 @@ pub fn UpdateProcThreadAttribute(
         lpReturnSize,
     ) == 0) {
         switch (kernel32.GetLastError()) {
+            .BAD_LENGTH => return error.NoSpaceLeft, // ThreadAttributeList too short
             else => |err| return unexpectedError(err),
         }
     }
@@ -308,6 +309,17 @@ pub const PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE = struct
     pub const RESERVED   =        (0x00000003 << 28);
 };
 // zig fmt: on
+
+
+pub const GetHandleInformationError = error{Unexpected};
+
+pub fn GetHandleInformation(h: HANDLE, flags: *DWORD) GetHandleInformationError!void {
+    if (kernel32.GetHandleInformation(h, flags) == 0) {
+        switch (kernel32.GetLastError()) {
+            else => |err| return unexpectedError(err),
+        }
+    }
+}
 
 // ====fixups
 pub const LoadLibraryError = error{

@@ -1,3 +1,5 @@
+//! Test PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE
+//! prevents user32 libraries can be loaded.
 // .\test\standalone\child_process_ntdll_only\main.zig
 const std = @import("std");
 const mystd = @import("mystd");
@@ -26,14 +28,12 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
         return error.Incorrect;
     };
     var attrs_buf: []u8 = undefined;
-    // *anyopaque
     attrs_buf = gpa.alloc(u8, attrs_len) catch {
         testError("could not alloc\n", .{});
         return error.Incorrect;
     };
     defer gpa.free(attrs_buf);
     @memset(attrs_buf, 0);
-    // attrs = @as(winextra.LPPROC_THREAD_ATTRIBUTE_LIST, attrs_buf);
     attrs = @alignCast(@ptrCast(attrs_buf));
     winextra.InitializeProcThreadAttributeList(attrs, 1, 0, &attrs_len) catch {
         testError("could not initialize proc thread attribute list\n", .{});

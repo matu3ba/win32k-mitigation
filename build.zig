@@ -15,19 +15,32 @@ pub fn build(b: *std.Build) void {
     // });
     // b.installArtifact(lib);
 
-    const exe_c = b.addExecutable(.{
-        .name = "win32k-mitigation-c",
-        .root_source_file = .{ .path = "src/main.c" },
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-    exe_c.addCSourceFile(.{
-        .file = .{ .path = "src/mem.c" },
-        .flags =  &.{},
-    });
-    exe_c.addIncludePath(std.build.LazyPath.relative("include"));
-    b.installArtifact(exe_c);
+    if (builtin.os.tag != .wasi) {
+        const exe_c = b.addExecutable(.{
+            .name = "win32k-mitigation-c",
+            .root_source_file = .{ .path = "src/main.c" },
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        exe_c.addCSourceFile(.{
+            .file = .{ .path = "src/mem.c" },
+            .flags =  &.{},
+        });
+        exe_c.addIncludePath(std.build.LazyPath.relative("include"));
+        b.installArtifact(exe_c);
+
+        const run_cmd_exe_c = b.addRunArtifact(exe_c);
+        run_cmd_exe_c.step.dependOn(b.getInstallStep());
+
+        if (b.args) |args| {
+            run_cmd_exe_c.addArgs(args);
+        }
+
+        const run_step_c = b.step("runc", "Run the c app");
+        run_step_c.dependOn(&run_cmd_exe_c.step);
+    }
+
 
     const exe_zig = b.addExecutable(.{
         .name = "win32k-mitigation-zig",
@@ -37,18 +50,13 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe_zig);
 
-    const run_cmd_exe_c = b.addRunArtifact(exe_c);
-    run_cmd_exe_c.step.dependOn(b.getInstallStep());
     const run_cmd_exe_zig = b.addRunArtifact(exe_zig);
     run_cmd_exe_zig.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
-        run_cmd_exe_c.addArgs(args);
         run_cmd_exe_zig.addArgs(args);
     }
 
-    const run_step_c = b.step("runc", "Run the c app");
-    run_step_c.dependOn(&run_cmd_exe_c.step);
     const run_step_zig = b.step("runz", "Run the zig app");
     run_step_zig.dependOn(&run_cmd_exe_zig.step);
 
@@ -87,29 +95,56 @@ pub fn build(b: *std.Build) void {
     }
 
     // moved out build.zig from child_process_ntdll_only
-    if (builtin.os.tag != .wasi) {
-        const child = b.addExecutable(.{
-            .name = "child_ntdll_only",
-            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/child.zig" },
-            .optimize = optimize,
-            .target = target,
-        });
-        child.addModule("mystd", mystd);
+    // TODO https://github.com/matu3ba/win32k-mitigation/issues/1
+    // if (builtin.os.tag != .wasi) {
+    //     const child = b.addExecutable(.{
+    //         .name = "child_ntdll_only",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/child.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     child.addModule("mystd", mystd);
+    //
+    //     const main = b.addExecutable(.{
+    //         .name = "main_ntdll_only",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/main.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+    //     main.addModule("mystd", mystd);
+    //     const run_childproc_module_test = b.addRunArtifact(main);
+    //     run_childproc_module_test.addArtifactArg(child);
+    //     run_childproc_module_test.expectExitCode(0);
+    //
+    //     test_step.dependOn(&run_childproc_module_test.step);
+    // }
 
-        const main = b.addExecutable(.{
-            .name = "main_ntdll_only",
-            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/main.zig" },
-            .optimize = optimize,
-            .target = target,
-        });
-        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
-        main.addModule("mystd", mystd);
-        const run_childproc_module_test = b.addRunArtifact(main);
-        run_childproc_module_test.addArtifactArg(child);
-        run_childproc_module_test.expectExitCode(0);
-
-        test_step.dependOn(&run_childproc_module_test.step);
-    }
+    // moved out build.zig from child_process_explicit_handles
+    // see https://github.com/matu3ba/win32k-mitigation/issues/2
+    // if (builtin.os.tag != .wasi) {
+    //     const child = b.addExecutable(.{
+    //         .name = "child_explicit_handles",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/child.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     child.addModule("mystd", mystd);
+    //
+    //     const main = b.addExecutable(.{
+    //         .name = "main_explicit_handles",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/main.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+    //     main.addModule("mystd", mystd);
+    //     const run_childproc_module_test = b.addRunArtifact(main);
+    //     run_childproc_module_test.addArtifactArg(child);
+    //     run_childproc_module_test.expectExitCode(0);
+    //
+    //     test_step.dependOn(&run_childproc_module_test.step);
+    // }
 
     test_step.dependOn(&run_childproc_unit_tests.step);
 }
