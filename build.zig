@@ -122,6 +122,29 @@ pub fn build(b: *std.Build) void {
 
     // moved out build.zig from child_process_explicit_handles
     // see https://github.com/matu3ba/win32k-mitigation/issues/2
+    if (builtin.os.tag != .wasi) {
+        const main = b.addExecutable(.{
+            .name = "main_explicit_handles-c",
+            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" },
+            .optimize = optimize,
+            .target = target,
+            .link_libc = true,
+        });
+        main.linkLibCpp();
+        b.installArtifact(main);
+
+        const run_main = b.addRunArtifact(main);
+        run_main.step.dependOn(b.getInstallStep());
+        run_main.expectExitCode(0);
+
+        if (b.args) |args| {
+            run_main.addArgs(args);
+        }
+
+        const run_step_c = b.step("run2", "Run explicit handle inherit c app");
+        run_step_c.dependOn(&run_main.step);
+    }
+    // see https://github.com/matu3ba/win32k-mitigation/issues/2
     // if (builtin.os.tag != .wasi) {
     //     const child = b.addExecutable(.{
     //         .name = "child_explicit_handles",
