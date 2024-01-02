@@ -68,6 +68,8 @@ pub fn build(b: *std.Build) void {
     const run_childproc_unit_tests = b.addRunArtifact(childproc_unit_tests);
 
     const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_childproc_unit_tests.step);
+
     const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
 
     // moved out build.zig from child_process
@@ -168,6 +170,4 @@ pub fn build(b: *std.Build) void {
 
         test_step.dependOn(&run_childproc_module_test.step);
     }
-
-    test_step.dependOn(&run_childproc_unit_tests.step);
 }

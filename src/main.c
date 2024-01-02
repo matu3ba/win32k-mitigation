@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <stdint.h>
 #include <tchar.h>
 #include <stdio.h>
 #include "mem.h"
@@ -23,6 +24,29 @@ static BOOL TestNotLoadLib(PCTSTR swzName)
     return TRUE;
 }
 
+UCHAR * allocateAndDoStuff() {
+    // 2GB = 2 * 1024 * 1024 * 1024 B = 2147483648 B
+    const uint64_t alloc_size = 2147483648;
+    UCHAR * buf_allocated = calloc(alloc_size, sizeof(UCHAR));
+    if (buf_allocated == NULL)
+    {
+        _tprintf(TEXT(" [!] Could not allocate 4MB = 4096 * 1024B = 4194304B\n"));
+        return NULL;
+    }
+    buf_allocated[0] = 1;
+    buf_allocated[alloc_size-1] = 1;
+    uint64_t sum = 0;
+    uint64_t zero_cnt = 3;
+    for (uint64_t i = 0; i<alloc_size; i+=1) {
+        if (i % zero_cnt == 0) buf_allocated[i] += 1;
+        sum += buf_allocated[i];
+    }
+    _tprintf(TEXT("Sum 4MB iterated: %llu\n"), sum);
+
+    Sleep(5000);
+    return buf_allocated;
+}
+
 int _tmain(int argc, PCTSTR argv[])
 {
     int res = 0;
@@ -35,6 +59,9 @@ int _tmain(int argc, PCTSTR argv[])
     PROCESS_INFORMATION procInfo = { 0 };
     DWORD dwExitCode = 0;
     PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY effectivePolicy = { 0 };
+
+    // UCHAR * buf_allocated = allocateAndDoStuff();
+    UCHAR * buf_allocated = NULL;
 
     if (argc >= 1 && _tcsicmp(argv[0], TEXT("self-run")) == 0)
     {
@@ -166,7 +193,7 @@ int _tmain(int argc, PCTSTR argv[])
                 _tprintf(TEXT(" --- done\n"));
             }
         }
-
+        if (buf_allocated != NULL) free(buf_allocated);
         _tprintf(TEXT(" [+] Child exiting successfully\n"));
         ExitProcess(0);
     }
@@ -224,5 +251,6 @@ int _tmain(int argc, PCTSTR argv[])
 
 cleanup:
     _tprintf(TEXT(" [.] All done, return code %d\n"), res);
+    if (buf_allocated != NULL) free(buf_allocated);
     return res;
 }
