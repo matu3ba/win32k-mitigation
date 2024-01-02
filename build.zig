@@ -145,29 +145,29 @@ pub fn build(b: *std.Build) void {
         run_step_c.dependOn(&run_main.step);
     }
     // see https://github.com/matu3ba/win32k-mitigation/issues/2
-    // if (builtin.os.tag != .wasi) {
-    //     const child = b.addExecutable(.{
-    //         .name = "child_explicit_handles",
-    //         .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/child.zig" },
-    //         .optimize = optimize,
-    //         .target = target,
-    //     });
-    //     child.addModule("mystd", mystd);
-    //
-    //     const main = b.addExecutable(.{
-    //         .name = "main_explicit_handles",
-    //         .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/main.zig" },
-    //         .optimize = optimize,
-    //         .target = target,
-    //     });
-    //     // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
-    //     main.addModule("mystd", mystd);
-    //     const run_childproc_module_test = b.addRunArtifact(main);
-    //     run_childproc_module_test.addArtifactArg(child);
-    //     run_childproc_module_test.expectExitCode(0);
-    //
-    //     test_step.dependOn(&run_childproc_module_test.step);
-    // }
+    if (builtin.os.tag != .wasi) {
+        const child = b.addExecutable(.{
+            .name = "child_explicit_handles",
+            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/child.zig" },
+            .optimize = optimize,
+            .target = target,
+        });
+        child.addModule("mystd", mystd);
+
+        const main = b.addExecutable(.{
+            .name = "main_explicit_handles",
+            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/main.zig" },
+            .optimize = optimize,
+            .target = target,
+        });
+        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+        main.addModule("mystd", mystd);
+        const run_childproc_module_test = b.addRunArtifact(main);
+        run_childproc_module_test.addArtifactArg(child);
+        run_childproc_module_test.expectExitCode(0);
+
+        test_step.dependOn(&run_childproc_module_test.step);
+    }
 
     test_step.dependOn(&run_childproc_unit_tests.step);
 }
