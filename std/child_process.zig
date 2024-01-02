@@ -750,7 +750,7 @@ pub const ChildProcess = struct {
         };
 
         var siexStartInfoEx = winextra.STARTUPINFOEXW{
-            .lpStartupInfo = windows.STARTUPINFOW{
+            .lpStartupInfo = winextra.STARTUPINFOW{
                 .cb = @sizeOf(winextra.STARTUPINFOEXW),
                 .hStdError = g_hChildStd_ERR_Wr,
                 .hStdOutput = g_hChildStd_OUT_Wr,
@@ -773,7 +773,7 @@ pub const ChildProcess = struct {
             },
             .lpAttributeList = self.proc_thread_attr_list,
         };
-        var piProcInfo: windows.PROCESS_INFORMATION = undefined;
+        var piProcInfo: winextra.PROCESS_INFORMATION = undefined;
 
         const cwd_w = if (self.cwd) |cwd| try unicode.utf8ToUtf16LeWithNull(self.allocator, cwd) else null;
         defer if (cwd_w) |cwd| self.allocator.free(cwd);
@@ -948,7 +948,7 @@ fn windowsCreateProcessPathExt(
     envp_ptr: ?[*]u16,
     cwd_ptr: ?[*:0]u16,
     siexStartInfoEx: *winextra.STARTUPINFOEXW,
-    lpProcessInformation: *windows.PROCESS_INFORMATION,
+    lpProcessInformation: *winextra.PROCESS_INFORMATION,
 ) !void {
     const app_name_len = app_buf.items.len;
     const dir_path_len = dir_buf.items.len;
@@ -1141,7 +1141,7 @@ fn windowsCreateProcessPathExt(
     return unappended_err;
 }
 
-fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u16, cwd_ptr: ?[*:0]u16, siexStartInfoEx: *winextra.STARTUPINFOEXW, lpProcessInformation: *windows.PROCESS_INFORMATION) !void {
+fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u16, cwd_ptr: ?[*:0]u16, siexStartInfoEx: *winextra.STARTUPINFOEXW, lpProcessInformation: *winextra.PROCESS_INFORMATION) !void {
     // See https://stackoverflow.com/a/4207169/9306292
     // One can manually write in unicode even if one doesn't compile in unicode
     // (-DUNICODE).
@@ -1156,7 +1156,7 @@ fn windowsCreateProcess(app_name: [*:0]u16, cmd_line: [*:0]u16, envp_ptr: ?[*]u1
     //   due to inability of Windows to check (+translate) the character encodings.
     const flags = winextra.PROCESS_CREATION_FLAGS;
     const used_flags = @intFromEnum(flags.EXTENDED_STARTUPINFO_PRESENT) | @intFromEnum(flags.CREATE_UNICODE_ENVIRONMENT);
-    return windows.CreateProcessW(
+    return winextra.CreateProcessW(
         app_name,
         cmd_line,
         null,

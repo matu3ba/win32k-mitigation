@@ -33,6 +33,20 @@ pub extern "kernel32" fn UpdateProcThreadAttribute(
     lpReturnSize: ?*usize,
 ) callconv(win.WINAPI) win.BOOL;
 
+pub extern "kernel32" fn CreateProcessW(
+    lpApplicationName: ?win.LPCWSTR,
+    lpCommandLine: ?win.LPWSTR,
+    lpProcessAttributes: ?*win.SECURITY_ATTRIBUTES,
+    lpThreadAttributes: ?*win.SECURITY_ATTRIBUTES,
+    bInheritHandles: win.BOOL,
+    dwCreationFlags: win.DWORD,
+    lpEnvironment: ?*anyopaque,
+    lpCurrentDirectory: ?win.LPCWSTR,
+    lpStartupInfo: *win.STARTUPINFOW,
+    lpProcessInformation: *win.PROCESS_INFORMATION,
+) callconv(win.WINAPI) win.BOOL;
+
+
 pub extern "kernel32" fn GetHandleInformation(hObject: win.HANDLE, dwFlags: *win.DWORD) callconv(win.WINAPI) win.BOOL;
 
 // ====redundant error fix

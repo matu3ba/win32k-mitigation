@@ -12,21 +12,59 @@ else
     .C;
 
 pub const BOOL = i32;
-pub const PWSTR = [*:0]u16;
-pub const PSTR = [*:0]u8;
-pub const HANDLE = *anyopaque;
-pub const PVOID = *anyopaque;
-pub const SIZE_T = usize;
+pub const BYTE = u8;
 pub const DWORD = u32;
-pub const WCHAR = u16;
-
+pub const HANDLE = *anyopaque;
 pub const HMODULE = *opaque {};
+pub const LPCWSTR = [*:0]const WCHAR;
 pub const LPPROC_THREAD_ATTRIBUTE_LIST = *anyopaque;
-pub const va_list = *opaque {};
 pub const LPVOID = *anyopaque;
+pub const LPWSTR = [*:0]WCHAR;
+pub const PSTR = [*:0]u8;
+pub const PVOID = *anyopaque;
+pub const PWSTR = [*:0]u16;
+pub const SIZE_T = usize;
+pub const WCHAR = u16;
+pub const WORD = u16;
+pub const va_list = *opaque {};
+
+pub const SECURITY_ATTRIBUTES = extern struct {
+    nLength: DWORD,
+    lpSecurityDescriptor: ?*anyopaque,
+    bInheritHandle: BOOL,
+};
+
+pub const STARTUPINFOW = extern struct {
+    cb: DWORD,
+    lpReserved: ?LPWSTR,
+    lpDesktop: ?LPWSTR,
+    lpTitle: ?LPWSTR,
+    dwX: DWORD,
+    dwY: DWORD,
+    dwXSize: DWORD,
+    dwYSize: DWORD,
+    dwXCountChars: DWORD,
+    dwYCountChars: DWORD,
+    dwFillAttribute: DWORD,
+    dwFlags: DWORD,
+    wShowWindow: WORD,
+    cbReserved2: WORD,
+    lpReserved2: ?*BYTE,
+    hStdInput: ?HANDLE,
+    hStdOutput: ?HANDLE,
+    hStdError: ?HANDLE,
+};
+
+pub const PROCESS_INFORMATION = extern struct {
+    hProcess: HANDLE,
+    hThread: HANDLE,
+    dwProcessId: DWORD,
+    dwThreadId: DWORD,
+};
+
 
 pub const STARTUPINFOEXW = extern struct {
-    lpStartupInfo: std.os.windows.STARTUPINFOW,
+    lpStartupInfo: STARTUPINFOW,
     lpAttributeList: ?LPPROC_THREAD_ATTRIBUTE_LIST,
 };
 
@@ -252,6 +290,8 @@ pub const PROC_THREAD_ATTRIBUTE_NUM = enum(u32) {
 pub const PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = ProcThreadAttributeValue(
     @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeParentProcess), false, true, false
 );
+
+/// If handles in list not inheritable, CreateProcess* errors with INVALID_PARAMETER.
 pub const PROC_THREAD_ATTRIBUTE_HANDLE_LIST = ProcThreadAttributeValue(
     @intFromEnum(PROC_THREAD_ATTRIBUTE_NUM.ProcThreadAttributeHandleList), false, true, false
 );
@@ -343,4 +383,74 @@ pub fn LoadLibraryW(lpLibFileName: [*:0]const u16) LoadLibraryError!HMODULE {
 
 pub fn FreeLibrary(hModule: HMODULE) void {
     std.debug.assert(kernel32.FreeLibrary(hModule) != 0);
+}
+
+pub const CreateProcessError = error{
+    FileNotFound,
+    AccessDenied,
+    InvalidName,
+    NameTooLong,
+    InvalidExe,
+    Unexpected,
+};
+
+pub fn CreateProcessW(
+    lpApplicationName: ?LPCWSTR,
+    lpCommandLine: ?LPWSTR,
+    lpProcessAttributes: ?*SECURITY_ATTRIBUTES,
+    lpThreadAttributes: ?*SECURITY_ATTRIBUTES,
+    bInheritHandles: BOOL,
+    dwCreationFlags: DWORD,
+    lpEnvironment: ?*anyopaque,
+    lpCurrentDirectory: ?LPCWSTR,
+    lpStartupInfo: *STARTUPINFOW,
+    lpProcessInformation: *PROCESS_INFORMATION,
+) CreateProcessError!void {
+    if (kernel32.CreateProcessW(
+        lpApplicationName,
+        lpCommandLine,
+        lpProcessAttributes,
+        lpThreadAttributes,
+        bInheritHandles,
+        dwCreationFlags,
+        lpEnvironment,
+        lpCurrentDirectory,
+        lpStartupInfo,
+        lpProcessInformation,
+    ) == 0) {
+        switch (kernel32.GetLastError()) {
+            .FILE_NOT_FOUND => return error.FileNotFound,
+            .PATH_NOT_FOUND => return error.FileNotFound,
+            .ACCESS_DENIED => return error.AccessDenied,
+            .INVALID_PARAMETER => unreachable,
+            .NOACCESS => unreachable,
+            .INVALID_NAME => return error.InvalidName,
+            .FILENAME_EXCED_RANGE => return error.NameTooLong,
+            // These are all the system errors that are mapped to ENOEXEC by
+            // the undocumented _dosmaperr (old CRT) or __acrt_errno_map_os_error
+            // (newer CRT) functions. Their code can be found in crt/src/dosmap.c (old SDK)
+            // or urt/misc/errno.cpp (newer SDK) in the Windows SDK.
+            .BAD_FORMAT,
+            .INVALID_STARTING_CODESEG, // MIN_EXEC_ERROR in errno.cpp
+            .INVALID_STACKSEG,
+            .INVALID_MODULETYPE,
+            .INVALID_EXE_SIGNATURE,
+            .EXE_MARKED_INVALID,
+            .BAD_EXE_FORMAT,
+            .ITERATED_DATA_EXCEEDS_64k,
+            .INVALID_MINALLOCSIZE,
+            .DYNLINK_FROM_INVALID_RING,
+            .IOPL_NOT_ENABLED,
+            .INVALID_SEGDPL,
+            .AUTODATASEG_EXCEEDS_64k,
+            .RING2SEG_MUST_BE_MOVABLE,
+            .RELOC_CHAIN_XEEDS_SEGLIM,
+            .INFLOOP_IN_RELOC_CHAIN, // MAX_EXEC_ERROR in errno.cpp
+            // This one is not mapped to ENOEXEC but it is possible, for example
+            // when calling CreateProcessW on a plain text file with a .exe extension
+            .EXE_MACHINE_TYPE_MISMATCH,
+            => return error.InvalidExe,
+            else => |err| return unexpectedError(err),
+        }
+    }
 }
