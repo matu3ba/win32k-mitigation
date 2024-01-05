@@ -15,36 +15,6 @@ pub fn build(b: *std.Build) void {
     // });
     // b.installArtifact(lib);
 
-    if (builtin.os.tag != .wasi) {
-        const exe_c = b.addExecutable(.{
-            .name = "win32k-mitigation-c",
-            .target = target,
-            .optimize = optimize,
-        });
-        exe_c.addCSourceFile(.{
-            .file = .{ .path = "src/main.c" },
-            .flags =  &.{},
-        });
-        exe_c.addCSourceFile(.{
-            .file = .{ .path = "src/mem.c" },
-            .flags =  &.{},
-        });
-        exe_c.addIncludePath(std.Build.LazyPath.relative("include"));
-        exe_c.linkLibC();
-        b.installArtifact(exe_c);
-
-        const run_cmd_exe_c = b.addRunArtifact(exe_c);
-        run_cmd_exe_c.step.dependOn(b.getInstallStep());
-
-        if (b.args) |args| {
-            run_cmd_exe_c.addArgs(args);
-        }
-
-        const run_step_c = b.step("runc", "Run the c app");
-        run_step_c.dependOn(&run_cmd_exe_c.step);
-    }
-
-
     const exe_zig = b.addExecutable(.{
         .name = "win32k-mitigation-zig",
         .root_source_file = .{ .path = "src/main.zig" },
@@ -96,6 +66,49 @@ pub fn build(b: *std.Build) void {
         run_childproc_module_test.expectExitCode(0);
 
         test_step.dependOn(&run_childproc_module_test.step);
+    }
+
+    const run_step_cmiti = b.step("runcmiti", "Run the c app");
+    if (builtin.os.tag != .wasi) {
+        const main_c = b.addExecutable(.{
+            .name = "main_win32k_mitigation_c",
+            .target = target,
+            .optimize = optimize,
+        });
+
+        main_c.addCSourceFile(.{
+            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/main.c" },
+            .flags =  &.{},
+        });
+        main_c.addCSourceFile(.{
+            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
+            .flags =  &.{},
+        });
+        main_c.linkLibC();
+        b.installArtifact(main_c);
+
+        const child_c = b.addExecutable(.{
+            .name = "child_win32k_mitigation_c",
+            .target = target,
+            .optimize = optimize,
+        });
+        child_c.addCSourceFile(.{
+            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/child.c" },
+            .flags =  &.{},
+        });
+        child_c.addCSourceFile(.{
+            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
+            .flags =  &.{},
+        });
+        child_c.linkLibC();
+        b.installArtifact(child_c);
+
+        const run_win32k_mitigation_c_test = b.addRunArtifact(main_c);
+        run_win32k_mitigation_c_test.addArtifactArg(child_c);
+        run_win32k_mitigation_c_test.step.dependOn(b.getInstallStep());
+        run_win32k_mitigation_c_test.expectExitCode(0);
+
+        run_step_cmiti.dependOn(&run_win32k_mitigation_c_test.step);
     }
 
     // moved out build.zig from child_process_ntdll_only
