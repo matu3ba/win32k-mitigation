@@ -106,7 +106,25 @@ pub fn build(b: *std.Build) void {
         const run_win32k_mitigation_c_test = b.addRunArtifact(main_c);
         run_win32k_mitigation_c_test.addArtifactArg(child_c);
         run_win32k_mitigation_c_test.step.dependOn(b.getInstallStep());
-        run_win32k_mitigation_c_test.expectExitCode(0);
+        // bug 20-30% chance to trigger unrecoverable from renaming file during compilation:
+        // 1. change following line to '..expectExitCode(1);'
+        // 2. zig build runcmiti
+        // 3. during build, change back to '..expectExitCode(0);'
+        // 4. Observe potentially
+        // $ zig build runcmiti
+        // runcmiti
+        // └─ run main_win32k_mitigation_c failure
+        // error: the following command exited with code 0 (expected exited with code 1):
+        // C:\Users\user\dev\zi\cpywin32k-mitigation\zig-out\bin\main_win32k_mitigation_c.exe C:\Users\user\dev\zi\cpywin32k-mitigation\zig-out\bin\child_win32k_mitigation_c.exe
+        // Build Summary: 9/11 steps succeeded; 1 failed (disable with --summary none)
+        // runcmiti transitive failure
+        // └─ run main_win32k_mitigation_c failure
+        // error: the following build command failed with exit code 1:
+        // C:\Users\user\dev\zi\cpywin32k-mitigation\zig-cache\o\42b8f2908c24689b75204e05f9fde811\build.exe C:\Users\user\bin\zig.exe C:\Users\user\dev\zi\cpywin32k-mitigation C:\Users\user\dev\zi\cpywin32k-mitigation\zig-cache C:\Users\user\AppData\Local\zig --seed 0x7506bb65 runcmiti
+        // 5. Observe deterministically
+        // $ zig build runcmiti
+        // error: failed to rename compilation results ('C:\Users\user\dev\zi\win32k-mitigation\zig-cache\tmp\15adb3c4a03dd078') into local cache ('C:\Users\user\dev\zi\win32k-mitigation\zig-cache\o\0df9a39edc521d2b17c1fd98d3777908'): AccessDenied
+        run_win32k_mitigation_c_test.expectExitCode(1);
 
         run_step_cmiti.dependOn(&run_win32k_mitigation_c_test.step);
     }
