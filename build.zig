@@ -18,16 +18,19 @@ pub fn build(b: *std.Build) void {
     if (builtin.os.tag != .wasi) {
         const exe_c = b.addExecutable(.{
             .name = "win32k-mitigation-c",
-            .root_source_file = .{ .path = "src/main.c" },
             .target = target,
             .optimize = optimize,
-            .link_libc = true,
+        });
+        exe_c.addCSourceFile(.{
+            .file = .{ .path = "src/main.c" },
+            .flags =  &.{},
         });
         exe_c.addCSourceFile(.{
             .file = .{ .path = "src/mem.c" },
             .flags =  &.{},
         });
-        exe_c.addIncludePath(std.build.LazyPath.relative("include"));
+        exe_c.addIncludePath(std.Build.LazyPath.relative("include"));
+        exe_c.linkLibC();
         b.installArtifact(exe_c);
 
         const run_cmd_exe_c = b.addRunArtifact(exe_c);
@@ -69,8 +72,7 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_childproc_unit_tests.step);
-
-    const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
+    const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
 
     // moved out build.zig from child_process
     if (builtin.os.tag != .wasi) {
@@ -87,8 +89,8 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
-        main.addModule("mystd", mystd);
+        main.root_module.addImport("mystd", mystd);
+        // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);
         run_childproc_module_test.expectExitCode(0);
@@ -105,7 +107,7 @@ pub fn build(b: *std.Build) void {
     //         .optimize = optimize,
     //         .target = target,
     //     });
-    //     child.addModule("mystd", mystd);
+    //     child.root_module.addImport("mystd", mystd);
     //
     //     const main = b.addExecutable(.{
     //         .name = "main_ntdll_only",
@@ -113,8 +115,8 @@ pub fn build(b: *std.Build) void {
     //         .optimize = optimize,
     //         .target = target,
     //     });
-    //     // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
-    //     main.addModule("mystd", mystd);
+    //     // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
+    //     main.root_module.addImport("mystd", mystd);
     //     const run_childproc_module_test = b.addRunArtifact(main);
     //     run_childproc_module_test.addArtifactArg(child);
     //     run_childproc_module_test.expectExitCode(0);
@@ -126,11 +128,13 @@ pub fn build(b: *std.Build) void {
     // see https://github.com/matu3ba/win32k-mitigation/issues/2
     if (builtin.os.tag != .wasi) {
         const main = b.addExecutable(.{
-            .name = "main_explicit_handles-c",
-            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" },
+            .name = "main_explicit_handles_cpp",
             .optimize = optimize,
             .target = target,
-            .link_libc = true,
+        });
+        main.addCSourceFile(.{
+            .file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" },
+            .flags = &[0][]const u8{}
         });
         main.linkLibCpp();
         b.installArtifact(main);
@@ -154,7 +158,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        child.addModule("mystd", mystd);
+        child.root_module.addImport("mystd", mystd);
 
         const main = b.addExecutable(.{
             .name = "main_explicit_handles",
@@ -162,8 +166,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        // const mystd = b.createModule(.{ .source_file = .{ .path = "std.zig" } });
-        main.addModule("mystd", mystd);
+        main.root_module.addImport("mystd", mystd);
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);
         run_childproc_module_test.expectExitCode(0);
