@@ -62,12 +62,12 @@ pub fn build(b: *std.Build) void {
         // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);
+        // run_childproc_module_test.step.dependOn(b.getInstallStep());
         run_childproc_module_test.expectExitCode(0);
 
         test_step.dependOn(&run_childproc_module_test.step);
     }
 
-    const run_step_cmiti = b.step("runcmiti", "Run C win32k mitigation.");
     if (builtin.os.tag != .wasi) {
         const main_c = b.addExecutable(.{
             .name = "main_win32k_mitigation_c",
@@ -123,40 +123,42 @@ pub fn build(b: *std.Build) void {
         // 5. Observe deterministically
         // $ zig build runcmiti
         // error: failed to rename compilation results ('C:\Users\user\dev\zi\win32k-mitigation\zig-cache\tmp\15adb3c4a03dd078') into local cache ('C:\Users\user\dev\zi\win32k-mitigation\zig-cache\o\0df9a39edc521d2b17c1fd98d3777908'): AccessDenied
+        run_win32k_mitigation_c_test.step.dependOn(b.getInstallStep());
         run_win32k_mitigation_c_test.expectExitCode(0);
 
+        const run_step_cmiti = b.step("runcmiti", "Run C win32k mitigation.");
         run_step_cmiti.dependOn(&run_win32k_mitigation_c_test.step);
     }
 
     // moved out build.zig from child_process_ntdll_only
     // TODO https://github.com/matu3ba/win32k-mitigation/issues/1
-    const run_step_zmiti = b.step("runzmiti", "Run Zig win32k mitigation.");
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
-            .name = "child_ntdll_only",
-            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/child.zig" },
+            .name = "child_win32k_mitigation_z",
+            .root_source_file = .{ .path = "test/standalone/child_process_win32k_mitigation_z/child.zig" },
             .optimize = optimize,
             .target = target,
         });
         child.root_module.addImport("mystd", mystd);
 
         const main = b.addExecutable(.{
-            .name = "main_ntdll_only",
-            .root_source_file = .{ .path = "test/standalone/child_process_ntdll_only/main.zig" },
+            .name = "main_win32k_mitigation_z",
+            .root_source_file = .{ .path = "test/standalone/child_process_win32k_mitigation_z/main.zig" },
             .optimize = optimize,
             .target = target,
         });
         // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
         main.root_module.addImport("mystd", mystd);
-        const run_childproc_module_test = b.addRunArtifact(main);
-        run_childproc_module_test.addArtifactArg(child);
-        run_childproc_module_test.expectExitCode(0);
+        const run_step_zmiti = b.addRunArtifact(main);
+        run_step_zmiti.addArtifactArg(child);
+        run_step_zmiti.step.dependOn(b.getInstallStep());
+        run_step_zmiti.expectExitCode(0);
 
-        run_step_zmiti.dependOn(&run_childproc_module_test.step);
+        const step_zmiti = b.step("runzmiti", "Run Zig win32k mitigation.");
+        step_zmiti.dependOn(&run_step_zmiti.step);
     }
 
     // moved out build.zig from child_process_explicit_handles
-    // see https://github.com/matu3ba/win32k-mitigation/issues/2
     if (builtin.os.tag != .wasi) {
         const main = b.addExecutable(.{
             .name = "main_explicit_handles_cpp",
@@ -170,17 +172,14 @@ pub fn build(b: *std.Build) void {
         main.linkLibCpp();
         b.installArtifact(main);
 
-        const run_main = b.addRunArtifact(main);
-        run_main.expectExitCode(0);
+        const runcpp_exh = b.addRunArtifact(main);
+        // runcpp_exh.step.dependOn(b.getInstallStep());
+        runcpp_exh.expectExitCode(0);
 
-        if (b.args) |args| {
-            run_main.addArgs(args);
-        }
-
-        const run_step_c = b.step("run2", "Run explicit handle inherit c app");
-        run_step_c.dependOn(&run_main.step);
+        test_step.dependOn(&runcpp_exh.step);
+        const cpp_exh_step = b.step("runcppexh", "Run explicit handle inherit cpp app");
+        cpp_exh_step.dependOn(&runcpp_exh.step);
     }
-    // see https://github.com/matu3ba/win32k-mitigation/issues/2
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
             .name = "child_explicit_handles",
@@ -197,10 +196,13 @@ pub fn build(b: *std.Build) void {
             .target = target,
         });
         main.root_module.addImport("mystd", mystd);
-        const run_childproc_module_test = b.addRunArtifact(main);
-        run_childproc_module_test.addArtifactArg(child);
-        run_childproc_module_test.expectExitCode(0);
+        const run_explicit_handle_test = b.addRunArtifact(main);
+        run_explicit_handle_test.addArtifactArg(child);
+        // run_explicit_handle_test.step.dependOn(b.getInstallStep());
+        run_explicit_handle_test.expectExitCode(0);
 
-        test_step.dependOn(&run_childproc_module_test.step);
+        test_step.dependOn(&run_explicit_handle_test.step);
+        const runz_exh_step = b.step("runzexh", "Run explicit handle inherit c app");
+        runz_exh_step.dependOn(&run_explicit_handle_test.step);
     }
 }
