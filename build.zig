@@ -59,10 +59,9 @@ pub fn build(b: *std.Build) void {
             .target = target,
         });
         main.root_module.addImport("mystd", mystd);
-        // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
         const run_childproc_module_test = b.addRunArtifact(main);
         run_childproc_module_test.addArtifactArg(child);
-        // run_childproc_module_test.step.dependOn(b.getInstallStep());
+        run_childproc_module_test.step.dependOn(b.getInstallStep());
         run_childproc_module_test.expectExitCode(0);
 
         test_step.dependOn(&run_childproc_module_test.step);
@@ -128,6 +127,7 @@ pub fn build(b: *std.Build) void {
 
         const run_step_cmiti = b.step("runcmiti", "Run C win32k mitigation.");
         run_step_cmiti.dependOn(&run_win32k_mitigation_c_test.step);
+        test_step.dependOn(&run_win32k_mitigation_c_test.step);
     }
 
     // moved out build.zig from child_process_ntdll_only
@@ -140,6 +140,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
         });
         child.root_module.addImport("mystd", mystd);
+        b.installArtifact(child);
 
         const main = b.addExecutable(.{
             .name = "main_win32k_mitigation_z",
@@ -147,8 +148,8 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        // const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
         main.root_module.addImport("mystd", mystd);
+        b.installArtifact(main);
         const run_step_zmiti = b.addRunArtifact(main);
         run_step_zmiti.addArtifactArg(child);
         run_step_zmiti.step.dependOn(b.getInstallStep());
@@ -156,6 +157,7 @@ pub fn build(b: *std.Build) void {
 
         const step_zmiti = b.step("runzmiti", "Run Zig win32k mitigation.");
         step_zmiti.dependOn(&run_step_zmiti.step);
+        // test_step.dependOn(&run_step_zmiti.step);
     }
 
     // moved out build.zig from child_process_explicit_handles
@@ -182,20 +184,22 @@ pub fn build(b: *std.Build) void {
     }
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
-            .name = "child_explicit_handles",
+            .name = "child_explicit_handles_z",
             .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/child.zig" },
             .optimize = optimize,
             .target = target,
         });
         child.root_module.addImport("mystd", mystd);
+        b.installArtifact(child);
 
         const main = b.addExecutable(.{
-            .name = "main_explicit_handles",
+            .name = "main_explicit_handles_z",
             .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/main.zig" },
             .optimize = optimize,
             .target = target,
         });
         main.root_module.addImport("mystd", mystd);
+        b.installArtifact(main);
         const run_explicit_handle_test = b.addRunArtifact(main);
         run_explicit_handle_test.addArtifactArg(child);
         // run_explicit_handle_test.step.dependOn(b.getInstallStep());
