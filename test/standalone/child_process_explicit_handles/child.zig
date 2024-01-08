@@ -4,15 +4,11 @@ const winextra = mystd.win_extra;
 const osextra = mystd.os_extra;
 const GetLastError = std.os.windows.kernel32.GetLastError;
 
-// 42 is expected by parent; other values result in test failure
-var exit_code: u8 = 42;
-
 pub fn main() !void {
     var arena_state = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const arena = arena_state.allocator();
     try run(arena);
     arena_state.deinit();
-    std.process.exit(exit_code);
 }
 
 fn run(allocator: std.mem.Allocator) !void {
@@ -23,6 +19,7 @@ fn run(allocator: std.mem.Allocator) !void {
     const s_handle1 = args.next() orelse @panic("no file1 handle string");
     // const s_handle2 = args.next() orelse @panic("no file2 handle string");
     // const s_handle3 = args.next() orelse @panic("no file3 handle string");
+    std.debug.print("{s}\n", .{ s_handle1 });
     const file_h1 = try osextra.stringToHandle(s_handle1);
     defer std.os.close(file_h1);
     // const file_h2 = try osextra.stringToHandle(s_handle2);

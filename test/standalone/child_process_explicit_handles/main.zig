@@ -2,7 +2,6 @@
 //! https://devblogs.microsoft.com/oldnewthing/20111216-00/?p=8873.
 //! "(If you pass an explicit list, then you must pass TRUE for bInherit­Handles.)
 //! And as before, for a handle to be inherited, it must be also be marked as inheritable."
-// .\test\standalone\child_process_explicit_handles\main.zig
 const std = @import("std");
 const mystd = @import("mystd");
 const winextra = mystd.win_extra;
@@ -114,7 +113,7 @@ fn behavior(gpa: std.mem.Allocator) !void {
 
         switch (wait_res) {
             .Exited => |code| {
-                const child_ok_code = 42; // set by child if no test errors
+                const child_ok_code = 0;
                 if (code != child_ok_code) {
                     testError("child exit code: {d}; want {d}", .{ code, child_ok_code });
                     return error.Incorrect;

@@ -1,4 +1,3 @@
-// C:\Users\hafer\dev\zi\win32k-mitigation\test\standalone\child_process_win32k_mitigation_c\main.c
 #include <Windows.h>
 #include <tchar.h>
 #include <stdio.h>
@@ -7,9 +6,7 @@
 int _tmain(int argc, PCTSTR argv[])
 {
     printf("[.] Main process created\n");
-    // _tprintf(TEXT(" [.] Main process created\n"));
     int res = 0;
-    // TCHAR swzChildPath[MAX_PATH + 1] = { 0 };
     PPROC_THREAD_ATTRIBUTE_LIST pAttr = NULL;
     SIZE_T dwBufLen = 0;
     DWORD dwMitigationPolicy = PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;

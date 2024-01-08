@@ -1,6 +1,5 @@
 //! Test PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE
-//! prevents user32 libraries can be loaded.
-// .\test\standalone\child_process_ntdll_only\main.zig
+//! prevents user32 libraries to be loadable.
 const std = @import("std");
 const mystd = @import("mystd");
 const winextra = mystd.win_extra;
@@ -20,7 +19,7 @@ const BehaviorError = error { Incorrect };
 
 fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
 
-    var mitigation_policy: winextra.DWORD = winextra.PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE.ALWAYS_ON;
+    const mitigation_policy: winextra.DWORD = winextra.PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE.ALWAYS_ON;
     var attrs: winextra.LPPROC_THREAD_ATTRIBUTE_LIST = undefined;
     var attrs_len: winextra.SIZE_T = undefined;
     std.testing.expectError(error.InsufficientBuffer, winextra.InitializeProcThreadAttributeList(null, 1, 0, &attrs_len)) catch {
@@ -34,16 +33,17 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
     };
     defer gpa.free(attrs_buf);
     @memset(attrs_buf, 0);
-    attrs = @alignCast(@ptrCast(attrs_buf));
+    attrs = @alignCast(@ptrCast(attrs_buf.ptr));
     winextra.InitializeProcThreadAttributeList(attrs, 1, 0, &attrs_len) catch {
         testError("could not initialize proc thread attribute list\n", .{});
         return error.Incorrect;
     };
+
     winextra.UpdateProcThreadAttribute(
         attrs,
         0,
         winextra.PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
-        @ptrCast(&mitigation_policy),
+        @constCast(&mitigation_policy),
         @sizeOf(@TypeOf(mitigation_policy)),
         null,
         null,
@@ -53,16 +53,16 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
     };
 
     var it = std.process.argsWithAllocator(gpa) catch {
-        testError("could collect args\n", .{});
+        testError("could not collect args\n", .{});
         return error.Incorrect;
     };
     defer it.deinit();
     _ = it.next() orelse unreachable; // skip binary name
     const child_path = it.next() orelse unreachable;
 
-    var child = mystd.ChildProcess.init(&.{ child_path, "hello arg" }, gpa);
+    var child = mystd.ChildProcess.init(&.{ child_path }, gpa);
     child.stdin_behavior = .Close;
-    child.stdout_behavior = .Close;
+    child.stdout_behavior = .Inherit;
     child.stderr_behavior = .Inherit;
     child.proc_thread_attr_list = attrs;
 
@@ -78,8 +78,8 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
 
     switch (wait_res) {
         .Exited => |code| {
-            const child_ok_code = 42; // set by child if no test errors
-            if (code != child_ok_code) {
+            const child_ok_code = 0; // set by child if no test errors
+            if (code != 0) {
                 testError("child exit code: {d}; want {d}", .{ code, child_ok_code });
                 return error.Incorrect;
             }

@@ -8,7 +8,7 @@ PVOID safe_alloc(SIZE_T dwBytes)
 	PVOID pRes = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwBytes);
 	if (pRes == NULL)
 	{
-		_ftprintf(stderr, TEXT("Error: unable to allocate %zu bytes: code %u\n"),
+		_ftprintf(stderr, TEXT("Error: unable to allocate %zu bytes: code %lu\n"),
 			dwBytes, GetLastError());
 		_exit(ERROR_OUTOFMEMORY);
 	}
@@ -23,7 +23,7 @@ PVOID safe_realloc(PVOID pBuf, SIZE_T dwBytes)
 	pRes = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, pBuf, dwBytes);
 	if (pRes == NULL)
 	{
-		_ftprintf(stderr, TEXT("Error: unable to extend allocation to %zu bytes: code %u\n"),
+		_ftprintf(stderr, TEXT("Error: unable to extend allocation to %zu bytes: code %lu\n"),
 			dwBytes, GetLastError());
 		_exit(ERROR_OUTOFMEMORY);
 	}

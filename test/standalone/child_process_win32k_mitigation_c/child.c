@@ -1,5 +1,3 @@
-// C:\Users\hafer\dev\zi\win32k-mitigation\test\standalone\child_process_win32k_mitigation_c\child.c
-
 #include <Windows.h>
 #include <tchar.h>
 #include <stdio.h>
@@ -15,16 +13,20 @@ static bool TestLoadLib(PCTSTR swzName)
     return true;
 }
 
-static bool TestNotLoadLib(PCTSTR swzName)
+static bool TestNotLoadLib(PCTSTR swzName, WORD expectedErr)
 {
     if (LoadLibrary(swzName) != NULL)
     {
         _tprintf(TEXT(" [!] Was able to load %s\n"), swzName);
         return false;
     }
+    WORD lastErr = GetLastError();
+    if (lastErr != expectedErr) {
+        _tprintf(TEXT(" [!] Got %d, expected %d\n"), lastErr, expectedErr);
+        return false;
+    }
     return true;
 }
-
 
 int _tmain(int argc, PCTSTR argv[])
 {
@@ -46,10 +48,11 @@ int _tmain(int argc, PCTSTR argv[])
         _tprintf(TEXT(" [+] Child running with filtered Win32k syscalls\n"));
     }
 
-    if (TestNotLoadLib(TEXT("USER32.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("gdi32full.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("GDI32.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll")) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("USER32.dll"), ERROR_DLL_INIT_FAILED) == false) has_err = true;
+    // yes, this makes no sense whatsoever
+    if (TestNotLoadLib(TEXT("gdi32full.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("GDI32.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
 
     if (has_err == true) goto cleanup;
 
@@ -93,8 +96,8 @@ int _tmain(int argc, PCTSTR argv[])
     if (TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-privateprofile-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-localization-private-l1-1-0.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("GDI32.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("USER32.dll")) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("GDI32.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("USER32.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
     _tprintf(TEXT(" --- done\n"));
 
     if (has_err == true) goto cleanup;
@@ -134,7 +137,7 @@ int _tmain(int argc, PCTSTR argv[])
     if (TestLoadLib(TEXT("KERNELBASE.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-kernel32-legacy-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-appinit-l1-1-0.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("GDI32.dll")) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("GDI32.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-1.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-apiquery-l1-1-0.dll")) == false) has_err = true;
@@ -151,7 +154,7 @@ int _tmain(int argc, PCTSTR argv[])
     if (TestLoadLib(TEXT("api-ms-win-core-profile-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-sysinfo-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-errorhandling-l1-1-0.dll")) == false) has_err = true;
-    if (TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll")) == false) has_err = true;
+    if (TestNotLoadLib(TEXT("api-ms-win-gdi-internal-uap-l1-1-0.dll"), ERROR_NOT_ENOUGH_MEMORY) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-1.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-delayload-l1-1-0.dll")) == false) has_err = true;
     if (TestLoadLib(TEXT("api-ms-win-core-apiquery-l1-1-0.dll")) == false) has_err = true;
