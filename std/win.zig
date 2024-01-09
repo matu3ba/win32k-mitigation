@@ -113,7 +113,9 @@ pub const PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY = extern struct {
         DUMMYSTRUCTNAME : packed struct {
             DisallowWin32kSystemCalls : u1,
             AuditDisallowWin32kSystemCalls : u1,
-            ReservedFlags : u30,
+            DisallowFsctlSystemCalls: u1,
+            AuditDisallowFsctlSystemCalls: u1,
+            ReservedFlags : u28,
         },
     },
 };
@@ -368,6 +370,7 @@ pub const LoadLibraryError = error{
     InitFailed,
     OutOfVirtualMemory,
 };
+
 pub fn LoadLibraryW(lpLibFileName: [*:0]const u16) LoadLibraryError!HMODULE {
     return kernel32.LoadLibraryW(lpLibFileName) orelse {
         switch (kernel32.GetLastError()) {
