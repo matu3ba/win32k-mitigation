@@ -3,6 +3,8 @@ const builtin = @import("builtin");
 const assert = std.debug.assert;
 const mem = std.mem;
 
+// TODO detect host platform == windows
+// TODO test both native and gnu => function with 2 return types
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -125,7 +127,8 @@ pub fn build(b: *std.Build) void {
         run_win32k_mitigation_c_test.step.dependOn(b.getInstallStep());
         run_win32k_mitigation_c_test.expectExitCode(0);
 
-        const run_step_cmiti = b.step("runcmiti", "Run C win32k mitigation.");
+        // TODO
+        const run_step_cmiti = b.step("runcmiti", "Run C win32k mitigation child process test.");
         run_step_cmiti.dependOn(&run_win32k_mitigation_c_test.step);
         test_step.dependOn(&run_win32k_mitigation_c_test.step);
     }
@@ -155,9 +158,10 @@ pub fn build(b: *std.Build) void {
         run_step_zmiti.step.dependOn(b.getInstallStep());
         run_step_zmiti.expectExitCode(0);
 
-        const step_zmiti = b.step("runzmiti", "Run Zig win32k mitigation.");
+        // TODO
+        test_step.dependOn(&run_step_zmiti.step);
+        const step_zmiti = b.step("runzmiti", "Run Zig win32k mitigation child process test.");
         step_zmiti.dependOn(&run_step_zmiti.step);
-        // test_step.dependOn(&run_step_zmiti.step);
     }
 
     // moved out build.zig from child_process_explicit_handles
@@ -178,10 +182,12 @@ pub fn build(b: *std.Build) void {
         // runcpp_exh.step.dependOn(b.getInstallStep());
         runcpp_exh.expectExitCode(0);
 
+        // TODO
         test_step.dependOn(&runcpp_exh.step);
-        const cpp_exh_step = b.step("runcppexh", "Run explicit handle inherit cpp app");
+        const cpp_exh_step = b.step("runcppexh", "Run C++ explicit handle inherit child process test.");
         cpp_exh_step.dependOn(&runcpp_exh.step);
     }
+
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
             .name = "child_explicit_handles_z",
@@ -205,8 +211,38 @@ pub fn build(b: *std.Build) void {
         // run_explicit_handle_test.step.dependOn(b.getInstallStep());
         run_explicit_handle_test.expectExitCode(0);
 
+        // TODO
         test_step.dependOn(&run_explicit_handle_test.step);
-        const runz_exh_step = b.step("runzexh", "Run explicit handle inherit c app");
+        const runz_exh_step = b.step("runzexh", "Run Zig explicit handle inherit child process test.");
         runz_exh_step.dependOn(&run_explicit_handle_test.step);
     }
+
+    // if (builtin.os.tag != .wasi) {
+    //     const child = b.addExecutable(.{
+    //         .name = "child_no_fsctl_z",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_no_fsctl_z/child.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     child.root_module.addImport("mystd", mystd);
+    //     b.installArtifact(child);
+    //
+    //     const main = b.addExecutable(.{
+    //         .name = "main_no_fsctl_z",
+    //         .root_source_file = .{ .path = "test/standalone/child_process_no_fsctl_z/main.zig" },
+    //         .optimize = optimize,
+    //         .target = target,
+    //     });
+    //     main.root_module.addImport("mystd", mystd);
+    //     b.installArtifact(main);
+    //     const run_explicit_handle_test = b.addRunArtifact(main);
+    //     run_explicit_handle_test.addArtifactArg(child);
+    //     // run_explicit_handle_test.step.dependOn(b.getInstallStep());
+    //     run_explicit_handle_test.expectExitCode(0);
+    //
+    //     // TODO
+    //     test_step.dependOn(&run_explicit_handle_test.step);
+    //     const runz_exh_step = b.step("runznofsctl", "Run no syscall fsctl Zig child process test");
+    //     runz_exh_step.dependOn(&run_explicit_handle_test.step);
+    // }
 }
