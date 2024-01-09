@@ -1,9 +1,2 @@
-.vs/
-Win32/
-x64/
-*.vcxproj.user
-*.swp
-Thumbs.db
-
 zig-cache
 zig-out
