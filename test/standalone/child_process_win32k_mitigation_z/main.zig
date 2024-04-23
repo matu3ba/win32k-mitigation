@@ -15,10 +15,9 @@ pub fn main() !void {
     return if (parent_test_error) error.ParentTestError else {};
 }
 
-const BehaviorError = error { Incorrect };
+const BehaviorError = error{Incorrect};
 
 fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
-
     const mitigation_policy: winextra.DWORD = winextra.PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE.ALWAYS_ON;
     var attrs: winextra.LPPROC_THREAD_ATTRIBUTE_LIST = undefined;
     var attrs_len: winextra.SIZE_T = undefined;
@@ -60,19 +59,19 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
     _ = it.next() orelse unreachable; // skip binary name
     const child_path = it.next() orelse unreachable;
 
-    var child = mystd.ChildProcess.init(&.{ child_path }, gpa);
+    var child = mystd.ChildProcess.init(&.{child_path}, gpa);
     child.stdin_behavior = .Close;
     child.stdout_behavior = .Inherit;
     child.stderr_behavior = .Inherit;
     child.proc_thread_attr_list = attrs;
 
     child.spawn() catch {
-        testError("could not spawn child\n", .{ });
+        testError("could not spawn child\n", .{});
         return error.Incorrect;
     };
 
     const wait_res = child.wait() catch {
-        testError("could not wait for child\n", .{ });
+        testError("could not wait for child\n", .{});
         return error.Incorrect;
     };
 
@@ -87,7 +86,7 @@ fn behavior(gpa: std.mem.Allocator) BehaviorError!void {
         else => |term| {
             testError("abnormal child exit: {}", .{term});
             return error.Incorrect;
-        }
+        },
     }
 }
 

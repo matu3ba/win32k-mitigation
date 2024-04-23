@@ -19,7 +19,7 @@ fn run(allocator: std.mem.Allocator) !void {
     const s_handle1 = args.next() orelse @panic("no file1 handle string");
     // const s_handle2 = args.next() orelse @panic("no file2 handle string");
     // const s_handle3 = args.next() orelse @panic("no file3 handle string");
-    std.debug.print("{s}\n", .{ s_handle1 });
+    std.debug.print("{s}\n", .{s_handle1});
     const file_h1 = try osextra.stringToHandle(s_handle1);
     defer std.os.close(file_h1);
     // const file_h2 = try osextra.stringToHandle(s_handle2);

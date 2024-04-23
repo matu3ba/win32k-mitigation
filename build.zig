@@ -78,11 +78,11 @@ pub fn build(b: *std.Build) void {
 
         main_c.addCSourceFile(.{
             .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/main.c" },
-            .flags =  &.{},
+            .flags = &.{},
         });
         main_c.addCSourceFile(.{
             .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
-            .flags =  &.{},
+            .flags = &.{},
         });
         main_c.linkLibC();
         b.installArtifact(main_c);
@@ -94,11 +94,11 @@ pub fn build(b: *std.Build) void {
         });
         child_c.addCSourceFile(.{
             .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/child.c" },
-            .flags =  &.{},
+            .flags = &.{},
         });
         child_c.addCSourceFile(.{
             .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
-            .flags =  &.{},
+            .flags = &.{},
         });
         child_c.linkLibC();
         b.installArtifact(child_c);
@@ -171,10 +171,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        main.addCSourceFile(.{
-            .file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" },
-            .flags = &[0][]const u8{}
-        });
+        main.addCSourceFile(.{ .file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" }, .flags = &[0][]const u8{} });
         main.linkLibCpp();
         b.installArtifact(main);
 

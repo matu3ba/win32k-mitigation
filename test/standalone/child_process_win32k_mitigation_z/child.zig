@@ -20,7 +20,7 @@ fn run() !void {
         &effectice_policy,
         @sizeOf(@TypeOf(effectice_policy)),
     ) catch {
-        testError("[!] Could not query system call filter policy in child: code '{d}'\n", .{ GetLastError() });
+        testError("[!] Could not query system call filter policy in child: code '{d}'\n", .{GetLastError()});
         return;
     };
 

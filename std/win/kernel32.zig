@@ -46,7 +46,6 @@ pub extern "kernel32" fn CreateProcessW(
     lpProcessInformation: *win.PROCESS_INFORMATION,
 ) callconv(win.WINAPI) win.BOOL;
 
-
 pub extern "kernel32" fn GetHandleInformation(hObject: win.HANDLE, dwFlags: *win.DWORD) callconv(win.WINAPI) win.BOOL;
 
 // ====redundant error fix

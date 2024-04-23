@@ -16,7 +16,6 @@ pub fn main() !void {
     return if (parent_test_error) error.ParentTestError else {};
 }
 
-
 fn behavior(gpa: std.mem.Allocator) !void {
     const tmpDir = std.testing.tmpDir;
     var tmp = tmpDir(.{});
@@ -82,7 +81,7 @@ fn behavior(gpa: std.mem.Allocator) !void {
         var buf_handle1_s: [osextra.handleCharSize]u8 = comptime [_]u8{0} ** osextra.handleCharSize;
         // const s_handle1 = osextra.handleToString(handle_to_inherit, &buf_handle1_s) catch {
         const s_handle1 = osextra.handleToString(file1.handle, &buf_handle1_s) catch {
-            testError("could only write {s} instead of {x}\n", .{buf_handle1_s, file1.handle});
+            testError("could only write {s} instead of {x}\n", .{ buf_handle1_s, file1.handle });
             return error.Incorrect;
         };
         // std.debug.print("chid_path s_handle1 (handle_to_inherit): {s} {s} ({x})\n", .{ child_path, s_handle1, @as(*u8, @ptrCast(handle_to_inherit)) });
@@ -122,7 +121,7 @@ fn behavior(gpa: std.mem.Allocator) !void {
             else => |term| {
                 testError("abnormal child exit: {}", .{term});
                 return error.Incorrect;
-            }
+            },
         }
     }
 
