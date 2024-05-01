@@ -1,7 +1,7 @@
 const std = @import("std");
 const mystd = @import("mystd");
 const winextra = mystd.win_extra;
-const osextra = mystd.os_extra;
+const posixextra = mystd.posix_extra;
 const GetLastError = std.os.windows.kernel32.GetLastError;
 
 pub fn main() !void {
@@ -20,24 +20,24 @@ fn run(allocator: std.mem.Allocator) !void {
     // const s_handle2 = args.next() orelse @panic("no file2 handle string");
     // const s_handle3 = args.next() orelse @panic("no file3 handle string");
     std.debug.print("{s}\n", .{s_handle1});
-    const file_h1 = try osextra.stringToHandle(s_handle1);
-    defer std.os.close(file_h1);
-    // const file_h2 = try osextra.stringToHandle(s_handle2);
-    // defer std.os.close(file_h2);
-    // const file_h3 = try osextra.stringToHandle(s_handle3);
-    // defer std.os.close(file_h3);
+    const file_h1 = try posixextra.stringToHandle(s_handle1);
+    defer std.posix.close(file_h1);
+    // const file_h2 = try posixextra.stringToHandle(s_handle2);
+    // defer std.posix.close(file_h2);
+    // const file_h3 = try posixextra.stringToHandle(s_handle3);
+    // defer std.posix.close(file_h3);
 
     // child inherited the handle, so inheritance must be enabled
-    const is_inheritable1 = try osextra.isInheritable(file_h1);
+    const is_inheritable1 = try posixextra.isInheritable(file_h1);
     std.debug.assert(is_inheritable1);
-    // const is_inheritable2 = try osextra.isInheritable(file_h2);
+    // const is_inheritable2 = try posixextra.isInheritable(file_h2);
     // std.debug.assert(is_inheritable2);
-    // const is_inheritable3 = try osextra.isInheritable(file_h3);
+    // const is_inheritable3 = try posixextra.isInheritable(file_h3);
     // std.debug.assert(is_inheritable3);
 
-    try osextra.disableInheritance(file_h1);
-    // try osextra.disableInheritance(file_h2);
-    // try osextra.disableInheritance(file_h3);
+    try posixextra.disableInheritance(file_h1);
+    // try posixextra.disableInheritance(file_h2);
+    // try posixextra.disableInheritance(file_h3);
     var file1 = std.fs.File{ .handle = file_h1 };
     const file1_wr = file1.writer();
     // var file2 = std.fs.File{ .handle = file_h2 };

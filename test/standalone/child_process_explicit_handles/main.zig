@@ -5,7 +5,7 @@
 const std = @import("std");
 const mystd = @import("mystd");
 const winextra = mystd.win_extra;
-const osextra = mystd.os_extra;
+const posixextra = mystd.posix_extra;
 pub fn main() !void {
     var gpa_state = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
     defer if (gpa_state.deinit() != .ok) {
@@ -29,9 +29,9 @@ fn behavior(gpa: std.mem.Allocator) !void {
         const file3 = try tmp.dir.createFile("testfile3", .{});
         defer file3.close();
 
-        const is_inheritable = try osextra.isInheritable(file1.handle);
+        const is_inheritable = try posixextra.isInheritable(file1.handle);
         std.debug.assert(is_inheritable == false);
-        try osextra.enableInheritance(file1.handle);
+        try posixextra.enableInheritance(file1.handle);
 
         // var handles_to_inherit: [3]winextra.HANDLE = undefined;
         // handles_to_inherit[0] = file1.handle;
@@ -78,20 +78,20 @@ fn behavior(gpa: std.mem.Allocator) !void {
         _ = it.next() orelse unreachable; // skip binary name
         const child_path = it.next() orelse unreachable;
 
-        var buf_handle1_s: [osextra.handleCharSize]u8 = comptime [_]u8{0} ** osextra.handleCharSize;
-        // const s_handle1 = osextra.handleToString(handle_to_inherit, &buf_handle1_s) catch {
-        const s_handle1 = osextra.handleToString(file1.handle, &buf_handle1_s) catch {
+        var buf_handle1_s: [posixextra.handleCharSize]u8 = comptime [_]u8{0} ** posixextra.handleCharSize;
+        // const s_handle1 = posixextra.handleToString(handle_to_inherit, &buf_handle1_s) catch {
+        const s_handle1 = posixextra.handleToString(file1.handle, &buf_handle1_s) catch {
             testError("could only write {s} instead of {x}\n", .{ buf_handle1_s, file1.handle });
             return error.Incorrect;
         };
         // std.debug.print("chid_path s_handle1 (handle_to_inherit): {s} {s} ({x})\n", .{ child_path, s_handle1, @as(*u8, @ptrCast(handle_to_inherit)) });
         // std.debug.print("chid_path s_handle1 (file1.handle): {s} {s} ({x})\n", .{ child_path, s_handle1, @as(*u8, @ptrCast(file1.handle)) });
 
-        // const s_handle1 = osextra.handleToString(handles_to_inherit[0], &buf_handle1_s) catch unreachable;
-        // var buf_handle2_s: [osextra.handleCharSize]u8 = comptime [_]u8{0} ** osextra.handleCharSize;
-        // const s_handle2 = osextra.handleToString(handles_to_inherit[1], &buf_handle2_s) catch unreachable;
-        // var buf_handle3_s: [osextra.handleCharSize]u8 = comptime [_]u8{0} ** osextra.handleCharSize;
-        // const s_handle3 = osextra.handleToString(handles_to_inherit[2], &buf_handle3_s) catch unreachable;
+        // const s_handle1 = posixextra.handleToString(handles_to_inherit[0], &buf_handle1_s) catch unreachable;
+        // var buf_handle2_s: [posixextra.handleCharSize]u8 = comptime [_]u8{0} ** posixextra.handleCharSize;
+        // const s_handle2 = posixextra.handleToString(handles_to_inherit[1], &buf_handle2_s) catch unreachable;
+        // var buf_handle3_s: [posixextra.handleCharSize]u8 = comptime [_]u8{0} ** posixextra.handleCharSize;
+        // const s_handle3 = posixextra.handleToString(handles_to_inherit[2], &buf_handle3_s) catch unreachable;
 
         // var child = mystd.ChildProcess.init(&.{ child_path, s_handle1, s_handle2, s_handle3 }, gpa);
         var child = mystd.ChildProcess.init(&.{ child_path, s_handle1 }, gpa);
