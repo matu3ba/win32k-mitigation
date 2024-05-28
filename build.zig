@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
 
     // const lib = b.addStaticLibrary(.{
     //     .name = "win32k-mitigation",
-    //     .root_source_file = .{ .path = "src/root.zig" },
+    //     .root_source_file = b.path("src/root.zig"),
     //     .target = target,
     //     .optimize = optimize,
     // });
@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
 
     // const exe_zig = b.addExecutable(.{
     //     .name = "win32k_mitigation_zig",
-    //     .root_source_file = .{ .path = "src/main.zig" },
+    //     .root_source_file = b.path("src/main.zig"),
     //     .target = target,
     //     .optimize = optimize,
     // });
@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
     // run_step_zig.dependOn(&run_cmd_exe_zig.step);
 
     const childproc_unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "std/child_process.zig" },
+        .root_source_file = b.path("std/child_process.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -43,20 +43,20 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_childproc_unit_tests.step);
-    const mystd = b.createModule(.{ .root_source_file = .{ .path = "std.zig" } });
+    const mystd = b.createModule(.{ .root_source_file = b.path("std.zig") });
 
     // moved out build.zig from child_process
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
             .name = "child",
-            .root_source_file = .{ .path = "test/standalone/child_process/child.zig" },
+            .root_source_file = b.path("test/standalone/child_process/child.zig"),
             .optimize = optimize,
             .target = target,
         });
 
         const main = b.addExecutable(.{
             .name = "main",
-            .root_source_file = .{ .path = "test/standalone/child_process/main.zig" },
+            .root_source_file = b.path("test/standalone/child_process/main.zig"),
             .optimize = optimize,
             .target = target,
         });
@@ -77,11 +77,11 @@ pub fn build(b: *std.Build) void {
         });
 
         main_c.addCSourceFile(.{
-            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/main.c" },
+            .file = b.path("test/standalone/child_process_win32k_mitigation_c/main.c"),
             .flags = &.{},
         });
         main_c.addCSourceFile(.{
-            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
+            .file = b.path("test/standalone/child_process_win32k_mitigation_c/mem.c"),
             .flags = &.{},
         });
         main_c.linkLibC();
@@ -93,11 +93,11 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         });
         child_c.addCSourceFile(.{
-            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/child.c" },
+            .file = b.path("test/standalone/child_process_win32k_mitigation_c/child.c"),
             .flags = &.{},
         });
         child_c.addCSourceFile(.{
-            .file = .{ .path = "test/standalone/child_process_win32k_mitigation_c/mem.c" },
+            .file = b.path("test/standalone/child_process_win32k_mitigation_c/mem.c"),
             .flags = &.{},
         });
         child_c.linkLibC();
@@ -138,7 +138,7 @@ pub fn build(b: *std.Build) void {
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
             .name = "child_win32k_mitigation_z",
-            .root_source_file = .{ .path = "test/standalone/child_process_win32k_mitigation_z/child.zig" },
+            .root_source_file = b.path("test/standalone/child_process_win32k_mitigation_z/child.zig"),
             .optimize = optimize,
             .target = target,
         });
@@ -147,7 +147,7 @@ pub fn build(b: *std.Build) void {
 
         const main = b.addExecutable(.{
             .name = "main_win32k_mitigation_z",
-            .root_source_file = .{ .path = "test/standalone/child_process_win32k_mitigation_z/main.zig" },
+            .root_source_file = b.path("test/standalone/child_process_win32k_mitigation_z/main.zig"),
             .optimize = optimize,
             .target = target,
         });
@@ -171,7 +171,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .target = target,
         });
-        main.addCSourceFile(.{ .file = .{ .path = "test/standalone/child_process_explicit_handles_c/main.cpp" }, .flags = &[0][]const u8{} });
+        main.addCSourceFile(.{ .file = b.path("test/standalone/child_process_explicit_handles_c/main.cpp"), .flags = &[0][]const u8{} });
         main.linkLibCpp();
         b.installArtifact(main);
 
@@ -188,7 +188,7 @@ pub fn build(b: *std.Build) void {
     if (builtin.os.tag != .wasi) {
         const child = b.addExecutable(.{
             .name = "child_explicit_handles_z",
-            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/child.zig" },
+            .root_source_file = b.path("test/standalone/child_process_explicit_handles/child.zig"),
             .optimize = optimize,
             .target = target,
         });
@@ -197,7 +197,7 @@ pub fn build(b: *std.Build) void {
 
         const main = b.addExecutable(.{
             .name = "main_explicit_handles_z",
-            .root_source_file = .{ .path = "test/standalone/child_process_explicit_handles/main.zig" },
+            .root_source_file = b.path("test/standalone/child_process_explicit_handles/main.zig"),
             .optimize = optimize,
             .target = target,
         });
@@ -217,7 +217,7 @@ pub fn build(b: *std.Build) void {
     // if (builtin.os.tag != .wasi) {
     //     const child = b.addExecutable(.{
     //         .name = "child_no_fsctl_z",
-    //         .root_source_file = .{ .path = "test/standalone/child_process_no_fsctl_z/child.zig" },
+    //         .root_source_file = b.path("test/standalone/child_process_no_fsctl_z/child.zig"),
     //         .optimize = optimize,
     //         .target = target,
     //     });
@@ -226,7 +226,7 @@ pub fn build(b: *std.Build) void {
     //
     //     const main = b.addExecutable(.{
     //         .name = "main_no_fsctl_z",
-    //         .root_source_file = .{ .path = "test/standalone/child_process_no_fsctl_z/main.zig" },
+    //         .root_source_file = b.path("test/standalone/child_process_no_fsctl_z/main.zig"),
     //         .optimize = optimize,
     //         .target = target,
     //     });
